@@ -48,22 +48,20 @@
                                 <lightning-icon icon-name="utility:http" size="x-small"></lightning-icon>
                                 <span>{orgConnection.Login_Url__c}</span>
                             </div>
-                            <template if:false={orgConnection.isButtonGroupNotLinked}>
+                            <template if:false={orgConnection.isStatusNotLinked}>
                                 <div class="info-row">
                                     <lightning-icon icon-name="utility:profile_alt" size="x-small"></lightning-icon>
                                     <span>{orgConnection.UserName__c}</span>
                                 </div>
                             </template>
 
-                            <template if:true={orgConnection.isButtonGroupFailed}>
+                            <template if:true={orgConnection.isStatusFailed}>
                                 <p class="error-msg">Token invalid — org may be expired</p>
                             </template>
                         </div>
                         
                         <div class="card-buttons">
-                            <!-- <template if:true={{orgConnection.Status__c} = }> -->
-
-                            <template if:true={orgConnection.isButtonGroupConnected}>
+                            <template if:true={orgConnection.isStatusConnected}>
                                 <button 
                                     class="btn" 
                                     onclick={handleDeleteOrgConnection} 
@@ -86,7 +84,7 @@
                                 </button>
                             </template>
 
-                            <template if:true={orgConnection.isButtonGroupFailed}>
+                            <template if:true={orgConnection.isStatusFailed}>
                                 <button 
                                     class="btn" 
                                     onclick={handleDeleteOrgConnection} 
@@ -101,7 +99,7 @@
                                 </button>
                             </template>
 
-                            <template if:true={orgConnection.isButtonGroupNotLinked}>
+                            <template if:true={orgConnection.isStatusNotLinked}>
                                 <button 
                                     class="btn" 
                                     onclick={handleDeleteOrgConnection} 

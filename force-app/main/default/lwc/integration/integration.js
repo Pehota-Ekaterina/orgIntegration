@@ -4,6 +4,7 @@ import getOrgConnectionsController from '@salesforce/apex/OrgController.getOrgCo
 import saveOrgConnectionController from '@salesforce/apex/OrgController.saveOrgConnection';
 import deleteOrgConnectionController from '@salesforce/apex/OrgController.deleteOrgConnection';
 import disconnectOrgConnectionController from '@salesforce/apex/OrgController.disconnectOrgConnection';
+import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import { refreshApex } from '@salesforce/apex'; 
 
 export default class Integration extends LightningElement {
@@ -14,14 +15,13 @@ export default class Integration extends LightningElement {
 
     @track searchQuery = '';
 
-    showToast(title, message, variant) {
-        const event = new ShowToastEvent({
-            title: title,
-            message: message,
-            variant: variant
-        });
-        this.dispatchEvent(event);
-    }
+    showModal = false;
+
+    orgConnection = {
+        orgName: '',
+        type: '',
+        loginUrl: ''
+    };
 
     @wire(getOrgConnectionsController)
     wiredOrgConnections(result) {
@@ -37,7 +37,6 @@ export default class Integration extends LightningElement {
     }
 
     get processedList() {
-
         if (!this.searchQuery) {
             this.filteredOrgList = this.orgConnectionList;
         } else {
@@ -52,26 +51,26 @@ export default class Integration extends LightningElement {
             let statusClass = '';
             let icon = '';
             
-            let buttonGroupConnected = false;
-            let buttonGroupFailed = false;
-            let buttonGroupNotLinked = false;
+            let statusConnected = false;
+            let statusFailed = false;
+            let statusNotLinked = false;
 
             switch (status) {
                 case 'Connected': 
                     statusClass = 'card-status status-green';
                     icon = 'utility:check';
-                    buttonGroupConnected = true;
+                    statusConnected = true;
                     break;
                 case 'Failed': 
                     statusClass = 'card-status status-red';
                     icon = 'utility:warning';
-                    buttonGroupFailed = true;
+                    statusFailed = true;
                     break;
                 case 'Not linked':
                 default: 
                     statusClass = 'card-status status-gray';
                     icon = 'utility:routing_offline';
-                    buttonGroupNotLinked = true;
+                    statusNotLinked = true;
             }
 
             return {
@@ -79,39 +78,12 @@ export default class Integration extends LightningElement {
                 statusSpanClass: statusClass,
                 statusIcon: icon,
                 
-                isButtonGroupConnected: buttonGroupConnected,
-                isButtonGroupFailed: buttonGroupFailed,
-                isButtonGroupNotLinked: buttonGroupNotLinked
+                isStatusConnected: statusConnected,
+                isStatusFailed: statusFailed,
+                isStatusNotLinked: statusNotLinked
             };
         });
     }
-
-    handleSearchChange(event) {
-        this.searchQuery = event.target.value.toLowerCase().trim();
-    }
-    
-    // get filteredOrgList() {
-    //     if (!this.orgConnectionList || this.orgConnectionList.length === 0) {
-    //         return [];
-    //     }
-        
-    //     if (!this.searchQuery) {
-    //         return this.orgConnectionList;
-    //     }
-        
-    //     return this.orgConnectionList.filter(org => {
-    //         const orgName = (org.Org_Name__c || '').toLowerCase();
-    //         return orgName.includes(this.searchQuery);
-    //     });
-    // }
-
-    showModal = false;
-
-    orgConnection = {
-        orgName: '',
-        type: '',
-        loginUrl: ''
-    };
 
     get typeOptions() {
         return [
@@ -120,6 +92,31 @@ export default class Integration extends LightningElement {
             { label: 'Sandbox', value: 'Sandbox' },
             { label: 'Scratch', value: 'Scratch' }
         ];
+    }
+
+    showToast(title, message, variant) {
+        const event = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant
+        });
+        this.dispatchEvent(event);
+    }
+
+    connectedCallback() {
+        window.addEventListener('focus', () => this.handleTabFocus());
+    }
+    
+    disconnectedCallback() {
+        window.removeEventListener('focus', () => this.handleTabFocus());
+    }
+
+    async handleTabFocus() {
+        await refreshApex(this.wiredOrgConnectionsResult);
+    }
+
+    handleSearchChange(event) {
+        this.searchQuery = event.target.value.toLowerCase().trim();
     }
 
     handleOrgNameChange(event) {
@@ -201,34 +198,44 @@ export default class Integration extends LightningElement {
             isValid = false;    
         } 
 
-        if (isValid) {
-            if(this.orgConnection.type && this.orgConnection.loginUrl.trim() === '') {
-                switch (this.orgConnection.type) {
-                    case 'Production':
-                        this.orgConnection.loginUrl = 'https://login.salesforce.com';
-                        break;
-                    case 'Sandbox':
-                        this.orgConnection.loginUrl = 'https://test.salesforce.com';
-                        break;
-                    case 'Scratch':
-                        this.orgConnection.loginUrl = 'https://test.salesforce.com';
-                        break;
-                    default:
-                        this.orgConnection.loginUrl = 'https://login.salesforce.com';
-                }
-            }
+        if (!isValid) {
+            this.showToast('Error', 'Please fix the errors in the form.', 'error');
+            return;
+        }
 
-            const orgConnectionData = {
-                Org_Name__c: this.orgConnection.orgName,
-                Type__c: this.orgConnection.type,
-                Login_Url__c: this.orgConnection.loginUrl
-            };
-            await saveOrgConnectionController({orgData: orgConnectionData});
+        if(this.orgConnection.type && this.orgConnection.loginUrl.trim() === '') {
+            switch (this.orgConnection.type) {
+                case 'Production':
+                    this.orgConnection.loginUrl = 'https://login.salesforce.com';
+                    break;
+                case 'Sandbox':
+                    this.orgConnection.loginUrl = 'https://test.salesforce.com';
+                    break;
+                case 'Scratch':
+                    this.orgConnection.loginUrl = 'https://test.salesforce.com';
+                    break;
+                default:
+                    this.orgConnection.loginUrl = 'https://login.salesforce.com';
+            }
+        }
+
+        const orgConnectionData = {
+            Org_Name__c: this.orgConnection.orgName,
+            Type__c: this.orgConnection.type,
+            Login_Url__c: this.orgConnection.loginUrl
+        };
+
+        try {
+            let orgconnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
+
+            const authUrl = await getAuthUrlController({ orgConnectionId: orgconnectionId });
+            window.open(authUrl, '_blankk');
+
             this.showToast('Success', 'Org Connection saved successfully', 'success');
             this.handleCloseModal();
             await refreshApex(this.wiredOrgConnectionsResult);
-        } else {
-            this.showToast('Error', 'Please fix the errors in the form.', 'error');
+        } catch (error) {
+            this.showToast('Error', 'Error saving org connection.', 'error');
         }
     }
 
