@@ -4,6 +4,7 @@ import getOrgConnectionsController from '@salesforce/apex/OrgController.getOrgCo
 import saveOrgConnectionController from '@salesforce/apex/OrgController.saveOrgConnection';
 import deleteOrgConnectionController from '@salesforce/apex/OrgController.deleteOrgConnection';
 import disconnectOrgConnectionController from '@salesforce/apex/OrgController.disconnectOrgConnection';
+import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import { refreshApex } from '@salesforce/apex'; 
 
@@ -307,6 +308,36 @@ export default class Integration extends LightningElement {
 
         } catch (error) {
             let errorMsg = 'Error disconnecting org connection.';
+            
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+            
+            this.showToast('Error', errorMsg, 'error');
+        }
+    }
+
+    handleOpenOrgConnection(event) {
+        // console.log('handleOpenOrgConnection called');
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.openOrgConnection(recordId);
+    }
+
+    async openOrgConnection(recordId) {
+        try {
+            // onsole.log('Opening org connection for recordId:', recordId);
+            const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
+            // console.log('Org URL:', orgUrl);
+            window.open(orgUrl, '_blank');
+        } catch (error) {
+            let errorMsg = 'Error opening org connection.';
             
             if (error.body?.message) {
                 errorMsg = error.body.message;

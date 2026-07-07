@@ -1,6 +1,7 @@
 public with sharing class OrgController {
 
-    private static final String clientKey = ConfigManager.getClientId();
+    private static final String clientId = ConfigManager.getClientId();
+    private static final String clientSecret = ConfigManager.getClientSecret();
     private static final String redirectUri = 'https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth';
 
     @AuraEnabled(cacheable=true)
@@ -24,14 +25,14 @@ public with sharing class OrgController {
     }
 
     @AuraEnabled
-    public static void deleteOrgConnection(String recordId){
+    public static void deleteOrgConnection(String orgConnectionId) {
         try {
-            if (String.isBlank(recordId)) {
+            if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
             }
 
             List<Org_Connection__c> recordsToDelete = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :recordId
+                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId
             ];
 
             if (recordsToDelete.isEmpty()) {
@@ -45,14 +46,14 @@ public with sharing class OrgController {
     }
 
     @AuraEnabled
-    public static void disconnectOrgConnection(String recordId){
+    public static void disconnectOrgConnection(String orgConnectionId) {
         try {
-            if (String.isBlank(recordId)) {
+            if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
             }
 
             List<Org_Connection__c> recordsToDisconnect = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :recordId
+                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId
             ];
 
             if (recordsToDisconnect.isEmpty()) {
@@ -67,6 +68,47 @@ public with sharing class OrgController {
     }
 
     @AuraEnabled
+    public static String openOrgConnection(String orgConnectionId) {
+        Org_Connection__c orgConnection = [SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
+
+        // Implement logic to open the org connection based on the orgConnectionId
+        // get a new accsees token (use refresh token)
+
+        String refreshToken = orgConnection.Refresh_Token__c;
+        String instanceUrl = orgConnection.Instance_Url__c;
+        String loginUrl = orgConnection.Login_Url__c;
+
+        //post request to get access rtoken
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(loginUrl + '/services/oauth2/token');
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        String body = 'grant_type=refresh_token' +
+                      '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                      '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                      '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+
+        req.setBody(body);
+
+        Http http = new Http();
+        HttpResponse res = http.send(req);
+
+        Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
+
+        if(res.getStatusCode() != 200) {
+            throw new AuraHandledException('Error from token endpoint: ' + res.getBody());
+        }
+
+        String newAccessToken = (String) jsonResp.get('access_token');
+
+        // return string url with frontdoor (use accsees token)
+        // {instance_url}/secur/frontdoor.jsp?sid={new_access_token}
+        return instanceUrl + '/secur/frontdoor.jsp?' +
+            'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8');
+    }
+
+    @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
         Org_Connection__c orgConnection = [SELECT Id, Login_Url__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
 
@@ -75,7 +117,7 @@ public with sharing class OrgController {
         
         return baseUrl + '/services/oauth2/authorize?' +
             'response_type=code' +
-            '&client_id=' + EncodingUtil.urlEncode(clientKey, 'UTF-8') +
+            '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
             '&redirect_uri=' + EncodingUtil.urlEncode(redirectUri, 'UTF-8') +
             '&scope=full%20refresh_token%20web' +
             '&state=' + EncodingUtil.urlEncode(state, 'UTF-8');
