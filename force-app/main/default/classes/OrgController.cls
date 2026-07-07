@@ -32,7 +32,7 @@ public with sharing class OrgController {
             }
 
             List<Org_Connection__c> recordsToDelete = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId
+                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId 
             ];
 
             if (recordsToDelete.isEmpty()) {
@@ -47,20 +47,28 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void disconnectOrgConnection(String orgConnectionId) {
+        Org_Connection__c recordsToDisconnect = null;
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
             }
 
-            List<Org_Connection__c> recordsToDisconnect = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId
+            recordsToDisconnect = [
+                SELECT Id, Refresh_Token__c, Status__c 
+                FROM Org_Connection__c 
+                WHERE Id = :orgConnectionId 
+                LIMIT 1
             ];
 
-            if (recordsToDisconnect.isEmpty()) {
+            if (recordsToDisconnect == null) {
                 throw new AuraHandledException('Org Connection not found.');
             } 
 
             //delete refrash tocken
+            recordsToDisconnect.Refresh_Token__c = '';
+            recordsToDisconnect.Status__c = 'Failed';
+            update recordsToDisconnect;
             
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());

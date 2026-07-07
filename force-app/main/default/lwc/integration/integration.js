@@ -277,7 +277,7 @@ export default class Integration extends LightningElement {
 
     async deleteOrgConnection(recordId) {
         try {
-            await deleteOrgConnectionController({ recordId: recordId });
+            await deleteOrgConnectionController({ orgConnectionId: recordId });
             
             this.showToast('Success', 'Org Connection deleted successfully', 'success');
             
@@ -300,7 +300,7 @@ export default class Integration extends LightningElement {
 
     async disconnectOrgConnection(recordId) {
         try {
-            await disconnectOrgConnectionController({ recordId: recordId });
+            await disconnectOrgConnectionController({ orgConnectionId: recordId });
             
             this.showToast('Success', 'Org Connection disconnected successfully', 'success');
             
