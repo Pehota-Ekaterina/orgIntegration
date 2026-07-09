@@ -199,6 +199,11 @@ p {
     color: #999;
 }
 
+.loading {
+    text-align: center;
+    padding: 48px 16px;
+}
+
 /* div {
     display: block;
     unicode-bidi: isolate;
