@@ -1,0 +1,15 @@
+<apex:page controller="CallbackAuthController" action="{!callbackAuth}">
+
+    <apex:outputText value="{!statusMessage}"/>
+
+    <apex:outputText value="{!accessToken}"/>
+    <apex:outputText value="{!idToken}"/>
+    
+    <div style="color: red;">
+        <apex:repeat value="{!errors}" var="err">
+            <p>{!err}</p>
+        </apex:repeat>
+    </div>
+    
+</apex:page>
+             
