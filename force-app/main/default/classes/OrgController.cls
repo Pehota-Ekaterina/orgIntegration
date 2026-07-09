@@ -57,7 +57,7 @@ public with sharing class OrgController {
             }
 
             recordsToDisconnect = [
-                SELECT Id, Refresh_Token__c, UserName__c, Instance_Url__c
+                SELECT Id, Refresh_Token__c, Instance_Url__c, UserName__c, Status__c
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
                 LIMIT 1
@@ -69,8 +69,10 @@ public with sharing class OrgController {
 
             //delete refrash tocken
             recordsToDisconnect.Refresh_Token__c = '';
-            recordsToDisconnect.UserName__c = '';
             recordsToDisconnect.Instance_Url__c = '';
+            recordsToDisconnect.UserName__c = '';
+
+            recordsToDisconnect.Status__c = 'Not linked';
             update recordsToDisconnect;
             
         } catch (Exception e) {
