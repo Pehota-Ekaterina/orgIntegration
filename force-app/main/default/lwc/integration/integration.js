@@ -5,6 +5,7 @@ import saveOrgConnectionController from '@salesforce/apex/OrgController.saveOrgC
 import deleteOrgConnectionController from '@salesforce/apex/OrgController.deleteOrgConnection';
 import disconnectOrgConnectionController from '@salesforce/apex/OrgController.disconnectOrgConnection';
 import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
+import revokeRefreshTokenController from '@salesforce/apex/OrgController.revokeRefreshToken';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import { refreshApex } from '@salesforce/apex'; 
 
@@ -335,7 +336,14 @@ export default class Integration extends LightningElement {
             // onsole.log('Opening org connection for recordId:', recordId);
             const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
             // console.log('Org URL:', orgUrl);
-            window.open(orgUrl, '_blank');
+
+            if (orgUrl) {
+                window.open(orgUrl, '_blank');                
+            } else {
+                // The connection is broken. Please reconnect the org.
+                this.showToast('Error', 'The connection is broken. Please reconnect the org.', 'error');
+                await refreshApex(this.wiredOrgConnectionsResult);                
+            }            
         } catch (error) {
             let errorMsg = 'Error opening org connection.';
             
@@ -346,7 +354,35 @@ export default class Integration extends LightningElement {
             } else if (Array.isArray(error) && error[0]?.message) {
                 errorMsg = error[0].message;
             }
+        
+            this.showToast('Error', errorMsg, 'error');
+        }
+    }
+
+    handleRevokeRefreshToken(event) {
+        // console.log('handleOpenOrgConnection called');
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.revokeRefreshToken(recordId);
+    }
+
+    async revokeRefreshToken(recordId) {
+        try {
+            await revokeRefreshTokenController({ orgConnectionId: recordId });
+            this.showToast('Success', 'Refresh token information.', 'success');
+        } catch (error) {
+            let errorMsg = 'Error revoking refresh token.';
             
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+        
             this.showToast('Error', errorMsg, 'error');
         }
     }

@@ -38,6 +38,8 @@ public with sharing class OrgController {
             if (recordsToDelete.isEmpty()) {
                 throw new AuraHandledException('Org Connection not found.');
             }
+            // System.debug('debug' );
+        
 
             delete recordsToDelete;
         } catch (Exception e) {
@@ -55,7 +57,7 @@ public with sharing class OrgController {
             }
 
             recordsToDisconnect = [
-                SELECT Id, Refresh_Token__c, Status__c 
+                SELECT Id, Refresh_Token__c, UserName__c, Instance_Url__c
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
                 LIMIT 1
@@ -67,7 +69,8 @@ public with sharing class OrgController {
 
             //delete refrash tocken
             recordsToDisconnect.Refresh_Token__c = '';
-            recordsToDisconnect.Status__c = 'Failed';
+            recordsToDisconnect.UserName__c = '';
+            recordsToDisconnect.Instance_Url__c = '';
             update recordsToDisconnect;
             
         } catch (Exception e) {
@@ -77,12 +80,13 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static String openOrgConnection(String orgConnectionId) {
-        Org_Connection__c orgConnection = [SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
+        Org_Connection__c orgConnection = [SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
 
         // Implement logic to open the org connection based on the orgConnectionId
         // get a new accsees token (use refresh token)
 
         String refreshToken = orgConnection.Refresh_Token__c;
+        System.debug('refreshToken: ' + refreshToken);
         String instanceUrl = orgConnection.Instance_Url__c;
         String loginUrl = orgConnection.Login_Url__c;
 
@@ -104,8 +108,13 @@ public with sharing class OrgController {
 
         Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
 
+        System.debug('status response: ' + res.getStatusCode());
+
         if(res.getStatusCode() != 200) {
-            throw new AuraHandledException('Error from token endpoint: ' + res.getBody());
+            orgConnection.Status__c = 'Failed';
+            update orgConnection;
+
+            return null;
         }
 
         String newAccessToken = (String) jsonResp.get('access_token');
@@ -113,7 +122,40 @@ public with sharing class OrgController {
         // return string url with frontdoor (use accsees token)
         // {instance_url}/secur/frontdoor.jsp?sid={new_access_token}
         return instanceUrl + '/secur/frontdoor.jsp?' +
-            'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8');
+            'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8') +
+            '&retURL=/home/home.jsp';
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static void revokeRefreshToken(String orgConnectionId) {
+        Org_Connection__c orgConnection = [SELECT Id, Login_Url__c, Instance_Url__c, Refresh_Token__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
+
+        String refreshToken = orgConnection.Refresh_Token__c;
+        String baseURL = orgConnection.Instance_Url__c; 
+
+        System.debug('Refresh token: ' + orgConnection.Refresh_Token__c);
+        System.debug('Base URL: ' + orgConnection.Instance_Url__c);
+        
+        // HttpRequest req = new HttpRequest();
+        // req.setEndpoint(orgConnection.Login_Url__c + '/services/oauth2/revoke');
+        // req.setMethod('POST');
+        // req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        // String body = 'token=' + EncodingUtil.urlEncode(orgConnection.Refresh_Token__c, 'UTF-8');
+
+        // req.setBody(body);
+
+        // Http http = new Http();
+        // HttpResponse res = http.send(req);
+
+        // System.debug('Status code: ' + res.getStatusCode());
+        // System.debug('Response body: ' + res.getBody());
+        
+        // if (res.getStatusCode() == 200 || res.getStatusCode() == 204) {
+        //     return true;
+        // } else {
+        //     return false;
+        // }
     }
 
     @AuraEnabled

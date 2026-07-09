@@ -95,6 +95,12 @@
     border-color: transparent;
 }
 
+.btn-revoke {
+    background: #fee8e8;
+    color: #ff5252;
+    border-color: transparent;
+}
+
 .field {
     margin-bottom: 16px;
 }
