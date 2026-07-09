@@ -5,9 +5,9 @@ public without sharing class CallbackAuthController {
     public String accessToken { get; set; }
     public String idToken { get; set; }
     
-    private String clientId = ConfigManager.getClientId();
-    private String clientSecret = ConfigManager.getClientSecret();
-    private String redirectUri = 'https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth';
+    private static final String clientId = ConfigManager.getClientId();
+    private static final String clientSecret = ConfigManager.getClientSecret();
+    private static final String redirectUri = 'https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth';
     
     public PageReference callbackAuth() {
         errors = new List<String>();

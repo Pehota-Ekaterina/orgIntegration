@@ -58,6 +58,15 @@
                             <template if:true={orgConnection.isStatusFailed}>
                                 <p class="error-msg">Token invalid — org may be expired</p>
                             </template>
+
+                            <template if:true={orgConnection.isStatusConnected}>
+                                <button 
+                                    class="btn btn-revoke"
+                                    onclick={handleRevokeRefreshToken} 
+                                    data-org-id={orgConnection.Id}>
+                                    Revoke token inf
+                                </button>
+                            </template>
                         </div>
                         
                         <div class="card-buttons">
@@ -78,7 +87,10 @@
                                     <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
                                     Disconnect
                                 </button>
-                                <button class="btn btn-primary">
+                                <button 
+                                    class="btn btn-primary"
+                                    onclick={handleOpenOrgConnection} 
+                                    data-org-id={orgConnection.Id}>
                                     <lightning-icon icon-name="utility:forward_up" size="xx-small"></lightning-icon>
                                     Open org
                                 </button>

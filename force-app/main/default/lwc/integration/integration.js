@@ -4,6 +4,8 @@ import getOrgConnectionsController from '@salesforce/apex/OrgController.getOrgCo
 import saveOrgConnectionController from '@salesforce/apex/OrgController.saveOrgConnection';
 import deleteOrgConnectionController from '@salesforce/apex/OrgController.deleteOrgConnection';
 import disconnectOrgConnectionController from '@salesforce/apex/OrgController.disconnectOrgConnection';
+import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
+import revokeRefreshTokenController from '@salesforce/apex/OrgController.revokeRefreshToken';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import { refreshApex } from '@salesforce/apex'; 
 
@@ -276,7 +278,7 @@ export default class Integration extends LightningElement {
 
     async deleteOrgConnection(recordId) {
         try {
-            await deleteOrgConnectionController({ recordId: recordId });
+            await deleteOrgConnectionController({ orgConnectionId: recordId });
             
             this.showToast('Success', 'Org Connection deleted successfully', 'success');
             
@@ -299,7 +301,7 @@ export default class Integration extends LightningElement {
 
     async disconnectOrgConnection(recordId) {
         try {
-            await disconnectOrgConnectionController({ recordId: recordId });
+            await disconnectOrgConnectionController({ orgConnectionId: recordId });
             
             this.showToast('Success', 'Org Connection disconnected successfully', 'success');
             
@@ -316,6 +318,71 @@ export default class Integration extends LightningElement {
                 errorMsg = error[0].message;
             }
             
+            this.showToast('Error', errorMsg, 'error');
+        }
+    }
+
+    handleOpenOrgConnection(event) {
+        // console.log('handleOpenOrgConnection called');
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.openOrgConnection(recordId);
+    }
+
+    async openOrgConnection(recordId) {
+        try {
+            // onsole.log('Opening org connection for recordId:', recordId);
+            const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
+            // console.log('Org URL:', orgUrl);
+
+            if (orgUrl) {
+                window.open(orgUrl, '_blank');                
+            } else {
+                // The connection is broken. Please reconnect the org.
+                this.showToast('Error', 'The connection is broken. Please reconnect the org.', 'error');
+                await refreshApex(this.wiredOrgConnectionsResult);                
+            }            
+        } catch (error) {
+            let errorMsg = 'Error opening org connection.';
+            
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+        
+            this.showToast('Error', errorMsg, 'error');
+        }
+    }
+
+    handleRevokeRefreshToken(event) {
+        // console.log('handleOpenOrgConnection called');
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.revokeRefreshToken(recordId);
+    }
+
+    async revokeRefreshToken(recordId) {
+        try {
+            await revokeRefreshTokenController({ orgConnectionId: recordId });
+            this.showToast('Success', 'Refresh token information.', 'success');
+        } catch (error) {
+            let errorMsg = 'Error revoking refresh token.';
+            
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+        
             this.showToast('Error', errorMsg, 'error');
         }
     }
