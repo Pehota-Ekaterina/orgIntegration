@@ -248,16 +248,44 @@ export default class Integration extends LightningElement {
         };
 
         try {
-            let orgconnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
-
-            const authUrl = await getAuthUrlController({ orgConnectionId: orgconnectionId });
-            window.open(authUrl, '_blankk');
+            let orgConnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
 
             this.showToast('Success', 'Org Connection saved successfully', 'success');
             this.handleCloseModal();
-            await refreshApex(this.wiredOrgConnectionsResult);
+            
+            this.authorizeOrgConnection(orgConnectionId);
         } catch (error) {
             this.showToast('Error', 'Error saving org connection.', 'error');
+        }
+    }
+
+    handleAuthorizeOrgConnection(event) {
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.authorizeOrgConnection(recordId);
+    }
+
+    async authorizeOrgConnection(recordId) {
+        try {
+            const authUrl = await getAuthUrlController({ orgConnectionId: recordId });
+            window.open(authUrl, '_blankk');
+
+            this.showToast('Success', 'Org Connection authorized successfully', 'success');
+            await refreshApex(this.wiredOrgConnectionsResult);
+        } catch (error) {
+            let errorMsg = 'Error authorizing org connection.';
+            
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+            
+            this.showToast('Error', errorMsg, 'error');
         }
     }
 

@@ -114,7 +114,11 @@
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
                                     </button>
-                                    <button class="btn">
+                                    <button 
+                                        class="btn"
+                                        onclick={handleAuthorizeOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
                                         Re-authorize
                                     </button>
@@ -129,7 +133,11 @@
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
                                     </button>
-                                    <button class="btn btn-primary">
+                                    <button 
+                                        class="btn btn-primary"
+                                        onclick={handleAuthorizeOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
                                         Authorize
                                     </button>
