@@ -13,6 +13,22 @@ public with sharing class OrgController {
         ];
     }
 
+    @AuraEnabled(cacheable=true)
+    public static Org_Connection__c getOrgConnectionById(String orgConnectionId) {
+        List<Org_Connection__c> records = [
+            SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c, Instance_Url__c
+            FROM Org_Connection__c
+            WHERE Id = :orgConnectionId
+            LIMIT 1
+        ];
+
+        if (records.isEmpty()) {
+            throw new AuraHandledException('Org Connection record not found: ' + orgConnectionId);
+        }
+        
+        return records[0];
+    }
+
     @AuraEnabled
     public static String saveOrgConnection(Map<String, Object> orgData) {
         Org_Connection__c orgConnection = new Org_Connection__c();

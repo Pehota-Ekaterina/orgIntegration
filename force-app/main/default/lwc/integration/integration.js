@@ -9,8 +9,9 @@ import revokeRefreshTokenController from '@salesforce/apex/OrgController.revokeR
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import connectionStatusCheckController from '@salesforce/apex/OrgController.connectionStatusCheck';
 import { refreshApex } from '@salesforce/apex'; 
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class Integration extends LightningElement {
+export default class Integration extends NavigationMixin(LightningElement) {
     @track orgConnectionList = [];
     filteredOrgList = [];
     error;
@@ -250,12 +251,13 @@ export default class Integration extends LightningElement {
         try {
             let orgConnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
 
-            this.showToast('Success', 'Org Connection saved successfully', 'success');
             this.handleCloseModal();
+            this.showToast('Success', 'Org Connection saved successfully', 'success');  
             
             this.authorizeOrgConnection(orgConnectionId);
         } catch (error) {
-            this.showToast('Error', 'Error saving org connection.', 'error');
+            console.log('handleAddOrgConnection');
+            this.showToast('Error', 'Error adding org connection.', 'error');
         }
     }
 
@@ -270,10 +272,7 @@ export default class Integration extends LightningElement {
     async authorizeOrgConnection(recordId) {
         try {
             const authUrl = await getAuthUrlController({ orgConnectionId: recordId });
-            window.open(authUrl, '_blankk');
-
-            this.showToast('Success', 'Org Connection authorized successfully', 'success');
-            await refreshApex(this.wiredOrgConnectionsResult);
+            window.open(authUrl, '_blank');
         } catch (error) {
             let errorMsg = 'Error authorizing org connection.';
             
@@ -284,6 +283,8 @@ export default class Integration extends LightningElement {
             } else if (Array.isArray(error) && error[0]?.message) {
                 errorMsg = error[0].message;
             }
+
+            console.log('authorizeOrgConnection');
             
             this.showToast('Error', errorMsg, 'error');
         }
@@ -381,9 +382,7 @@ export default class Integration extends LightningElement {
 
     async openOrgConnection(recordId) {
         try {
-            // onsole.log('Opening org connection for recordId:', recordId);
             const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
-            // console.log('Org URL:', orgUrl);
 
             if (orgUrl) {
                 window.open(orgUrl, '_blank');                
@@ -433,5 +432,23 @@ export default class Integration extends LightningElement {
         
             this.showToast('Error', errorMsg, 'error');
         }
+    }
+
+    handleOpenDetailPage(event) {
+        console.log('start');
+        const recordId = event.target.dataset.orgId;
+
+        console.log('id: ', recordId);
+        if(!recordId) return;
+
+        // NavigationMixin
+        this[NavigationMixin.Navigate]({
+            type: "standard__recordPage",
+            attributes: {
+                recordId: recordId,
+                objectApiName: "Org_Connection__c",
+                actionName: "view",
+            },
+        });      
     }
 }

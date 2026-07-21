@@ -43,7 +43,13 @@
                         <div key={orgConnection.Id} class="card">
 
                             <div class="card-top">
-                                <h3 class="card-name">{orgConnection.Org_Name__c}</h3>
+                                <h3 class="card-name"
+                                    role="button"
+                                    tabindex="0"
+                                    onclick={handleOpenDetailPage}
+                                    data-org-id={orgConnection.Id}>
+                                    {orgConnection.Org_Name__c}
+                                </h3>
                                 <span class={orgConnection.statusSpanClass}>
                                     <lightning-icon icon-name={orgConnection.statusIcon} size="x-small"></lightning-icon>
                                     {orgConnection.Status__c}
@@ -68,14 +74,14 @@
                                     <p class="error-msg">Token invalid — org may be expired</p>
                                 </template>
 
-                                <template if:true={orgConnection.isStatusConnected}>
+                                <!-- <template if:true={orgConnection.isStatusConnected}>
                                     <button 
                                         class="btn btn-revoke"
                                         onclick={handleRevokeRefreshToken} 
                                         data-org-id={orgConnection.Id}>
                                         Revoke token inf
                                     </button>
-                                </template>
+                                </template> -->
                             </div>
                             
                             <div class="card-buttons">
