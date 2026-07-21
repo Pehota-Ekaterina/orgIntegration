@@ -1,9 +1,6 @@
 public without sharing class CallbackAuthController {
     public String statusMessage { get; set; }
     public List<String> errors { get; set; }
-
-    public String accessToken { get; set; }
-    public String idToken { get; set; }
     
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
@@ -60,9 +57,14 @@ public without sharing class CallbackAuthController {
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
             
             if (res.getStatusCode() != 200) {
-                errors.add('Error from token endpoint: ' + res.getBody());
-                errors.add('status ' + res.getStatusCode());
-                return null;
+                // errors.add('Error from token endpoint: ' + res.getBody());
+                // errors.add('status ' + res.getStatusCode());
+                
+                PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+                pageRef.getParameters().put('c__toast', 'error');
+                pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
+                pageRef.setRedirect(true);
+                return pageRef;
             }
 
             String accessToken = (String) jsonResp.get('access_token');
@@ -80,15 +82,23 @@ public without sharing class CallbackAuthController {
             orgConnection.Refresh_Token__c = (String) jsonResp.get('refresh_token');
             orgConnection.Instance_Url__c = (String) jsonResp.get('instance_url');
             orgConnection.Status__c = 'Connected';
-            update orgConnection;
-            
-            statusMessage = 'Authorization successful!';
-            
+            update orgConnection;  
+
+            //open record page with sucses massage  
+            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+            pageRef.getParameters().put('c__toast', 'success');
+            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
+            pageRef.setRedirect(true);
+            return pageRef;
         } catch (Exception e) {
-            errors.add('Error on token save: ' + e.getMessage());
+            // errors.add('Error on token save: ' + e.getMessage());
+            //open record page with error massage
+            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+            pageRef.getParameters().put('c__toast', 'error');
+            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
+            pageRef.setRedirect(true);
+            return pageRef;
         }
-        
-        return null;
     }
 
     private String getUsernameViaUserInfo(String accessToken, String orgUrl) {
