@@ -11,10 +11,6 @@
                 <div class="card">
                     <div class="card-top">
                         <h3 class="card-name">{orgConnection.Org_Name__c}</h3>
-                        <!-- <span>
-                            {orgConnection.Status__c}
-                        </span> -->
-
                         <span class={orgConnection.statusSpanClass}>
                             <lightning-icon icon-name={orgConnection.statusIcon} size="x-small"></lightning-icon>
                             {orgConnection.Status__c}

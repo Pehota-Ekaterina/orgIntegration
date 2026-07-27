@@ -173,7 +173,6 @@ export default class RecordDetailPage extends NavigationMixin(LightningElement) 
             
             this.showToast('Success', 'Org Connection deleted successfully', 'success');
 
-            // Navigate to home page
             this[NavigationMixin.Navigate]({
                 type: 'standard__namedPage',
                 attributes: {

@@ -141,7 +141,6 @@ button {
 
 .card {
     max-width: 600px;
-    /* height: 220px; */
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
@@ -203,11 +202,6 @@ p {
     text-align: center;
     padding: 48px 16px;
 }
-
-/* div {
-    display: block;
-    unicode-bidi: isolate;
-} */
 
 .status-gray {
     color: #666;

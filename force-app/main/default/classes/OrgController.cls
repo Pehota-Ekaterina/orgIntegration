@@ -2,7 +2,7 @@ public with sharing class OrgController {
 
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    private static final String redirectUri = 'https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth';
+    private static final String redirectUri = ConfigManager.getRedirectUrl();
 
     @AuraEnabled(cacheable=true)
     public static List<Org_Connection__c> getOrgConnections() {
@@ -15,18 +15,26 @@ public with sharing class OrgController {
 
     @AuraEnabled(cacheable=true)
     public static Org_Connection__c getOrgConnectionById(String orgConnectionId) {
-        List<Org_Connection__c> records = [
-            SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c, Instance_Url__c
-            FROM Org_Connection__c
-            WHERE Id = :orgConnectionId
-            LIMIT 1
-        ];
+        try {
+            if (String.isBlank(orgConnectionId)) {
+                throw new AuraHandledException('Invalid Record ID provided.');
+            }
 
-        if (records.isEmpty()) {
-            throw new AuraHandledException('Org Connection record not found: ' + orgConnectionId);
+            List<Org_Connection__c> records = [
+                SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c, Instance_Url__c
+                FROM Org_Connection__c
+                WHERE Id = :orgConnectionId
+                LIMIT 1
+            ];
+
+            if (records.isEmpty()) {
+                throw new AuraHandledException('Org Connection record not found: ' + orgConnectionId);
+            }
+            
+            return records[0];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
-        
-        return records[0];
     }
 
     @AuraEnabled
@@ -53,9 +61,7 @@ public with sharing class OrgController {
 
             if (recordsToDelete.isEmpty()) {
                 throw new AuraHandledException('Org Connection not found.');
-            }
-            // System.debug('debug' );
-        
+            }        
 
             delete recordsToDelete;
         } catch (Exception e) {
@@ -65,32 +71,30 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void disconnectOrgConnection(String orgConnectionId) {
-        Org_Connection__c recordsToDisconnect = null;
-
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
             }
 
-            recordsToDisconnect = [
+            List<Org_Connection__c> recordsToDisconnectList = [
                 SELECT Id, Refresh_Token__c, Instance_Url__c, UserName__c, Status__c
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
                 LIMIT 1
             ];
 
-            if (recordsToDisconnect == null) {
+            if (recordsToDisconnectList.isEmpty()) {
                 throw new AuraHandledException('Org Connection not found.');
             } 
 
-            //delete refrash tocken
-            recordsToDisconnect.Refresh_Token__c = '';
-            recordsToDisconnect.Instance_Url__c = '';
-            recordsToDisconnect.UserName__c = '';
+            Org_Connection__c recordToDisconnect = recordsToDisconnectList[0];
 
-            recordsToDisconnect.Status__c = 'Not linked';
-            update recordsToDisconnect;
-            
+            recordToDisconnect.Refresh_Token__c = null;
+            recordToDisconnect.Instance_Url__c = null;
+            recordToDisconnect.UserName__c = null;
+
+            recordToDisconnect.Status__c = 'Not linked';
+            update recordToDisconnect;  
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -98,97 +102,94 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static String openOrgConnection(String orgConnectionId) {
-        Org_Connection__c orgConnection = [SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
+        try {
+            if (String.isBlank(orgConnectionId)) {
+                throw new AuraHandledException('Invalid Record ID provided.');
+            }
 
-        // Implement logic to open the org connection based on the orgConnectionId
-        // get a new accsees token (use refresh token)
+            List<Org_Connection__c> orgConnectionList = [
+                SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c 
+                FROM Org_Connection__c 
+                WHERE Id = :orgConnectionId 
+                LIMIT 1
+            ];
 
-        String refreshToken = orgConnection.Refresh_Token__c;
-        System.debug('refreshToken: ' + refreshToken);
-        String instanceUrl = orgConnection.Instance_Url__c;
-        String loginUrl = orgConnection.Login_Url__c;
+            if (orgConnectionList.isEmpty()) {
+                throw new AuraHandledException('Org Connection not found.');
+            } 
 
-        //post request to get access rtoken
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint(loginUrl + '/services/oauth2/token');
-        req.setMethod('POST');
-        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+            Org_Connection__c orgConnection = orgConnectionList[0];
 
-        String body = 'grant_type=refresh_token' +
-                      '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                      '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                      '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+            String refreshToken = orgConnection.Refresh_Token__c;
+            String instanceUrl = orgConnection.Instance_Url__c;
+            String loginUrl = orgConnection.Login_Url__c;
 
-        req.setBody(body);
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(loginUrl + '/services/oauth2/token');
+            req.setMethod('POST');
+            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-        Http http = new Http();
-        HttpResponse res = http.send(req);
+            String body = 'grant_type=refresh_token' +
+                        '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                        '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                        '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
 
-        Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
+            req.setBody(body);
 
-        System.debug('status response: ' + res.getStatusCode());
+            Http http = new Http();
+            HttpResponse res = http.send(req);
 
-        if(res.getStatusCode() != 200) {
-            orgConnection.Status__c = 'Failed';
-            update orgConnection;
+            Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
 
-            return null;
+            if(res.getStatusCode() != 200) {
+                orgConnection.Status__c = 'Failed';
+                update orgConnection;
+
+                return null; 
+            }
+
+            String newAccessToken = (String) jsonResp.get('access_token');
+
+            return instanceUrl + '/secur/frontdoor.jsp?' +
+                'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8') +
+                '&retURL=/home/home.jsp'; 
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
-
-        String newAccessToken = (String) jsonResp.get('access_token');
-
-        // return string url with frontdoor (use accsees token)
-        // {instance_url}/secur/frontdoor.jsp?sid={new_access_token}
-        return instanceUrl + '/secur/frontdoor.jsp?' +
-            'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8') +
-            '&retURL=/home/home.jsp';
-    }
-
-    @AuraEnabled(cacheable=false)
-    public static void revokeRefreshToken(String orgConnectionId) {
-        Org_Connection__c orgConnection = [SELECT Id, Login_Url__c, Instance_Url__c, Refresh_Token__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
-
-        String refreshToken = orgConnection.Refresh_Token__c;
-        String baseURL = orgConnection.Instance_Url__c; 
-
-        System.debug('Refresh token: ' + orgConnection.Refresh_Token__c);
-        System.debug('Base URL: ' + orgConnection.Instance_Url__c);
-        
-        // HttpRequest req = new HttpRequest();
-        // req.setEndpoint(orgConnection.Login_Url__c + '/services/oauth2/revoke');
-        // req.setMethod('POST');
-        // req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-        // String body = 'token=' + EncodingUtil.urlEncode(orgConnection.Refresh_Token__c, 'UTF-8');
-
-        // req.setBody(body);
-
-        // Http http = new Http();
-        // HttpResponse res = http.send(req);
-
-        // System.debug('Status code: ' + res.getStatusCode());
-        // System.debug('Response body: ' + res.getBody());
-        
-        // if (res.getStatusCode() == 200 || res.getStatusCode() == 204) {
-        //     return true;
-        // } else {
-        //     return false;
-        // }
     }
 
     @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
-        Org_Connection__c orgConnection = [SELECT Id, Login_Url__c FROM Org_Connection__c WHERE Id = :orgConnectionId LIMIT 1];
+        try {
+            if (String.isBlank(orgConnectionId)) {
+                throw new AuraHandledException('Invalid Record ID provided.');
+            }
 
-        String state = orgConnectionId;
-        String baseUrl = orgConnection.Login_Url__c;
-        
-        return baseUrl + '/services/oauth2/authorize?' +
-            'response_type=code' +
-            '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-            '&redirect_uri=' + EncodingUtil.urlEncode(redirectUri, 'UTF-8') +
-            '&scope=full%20refresh_token%20web' +
-            '&state=' + EncodingUtil.urlEncode(state, 'UTF-8');
+            List<Org_Connection__c> orgConnectionsList = [
+                SELECT Id, Login_Url__c 
+                FROM Org_Connection__c 
+                WHERE Id = :orgConnectionId 
+                LIMIT 1
+            ];
+
+            if (orgConnectionsList.isEmpty()) {
+                throw new AuraHandledException('Org Connection not found.');
+            }        
+            Org_Connection__c orgConnection = orgConnectionsList[0];
+
+            String state = orgConnectionId;
+            String baseUrl = orgConnection.Login_Url__c;
+            
+            return baseUrl + '/services/oauth2/authorize?' +
+                'response_type=code' +
+                '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                '&redirect_uri=' + EncodingUtil.urlEncode(redirectUri, 'UTF-8') +
+                '&scope=full%20refresh_token%20web' +
+                '&state=' + EncodingUtil.urlEncode(state, 'UTF-8');
+
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }        
     }
 
     @AuraEnabled
@@ -199,7 +200,6 @@ public with sharing class OrgController {
         for (Org_Connection__c orgConnection : orgConnectionsList) {
             if (String.isBlank(orgConnection.Refresh_Token__c)) {
                 orgConnection.Status__c = 'Not linked';
-                // orgConnectionsToUpdate.add(orgConnection);
             } else {
                 String loginUrl = orgConnection.Login_Url__c;
                 String refreshToken = orgConnection.Refresh_Token__c;
@@ -207,37 +207,40 @@ public with sharing class OrgController {
 
                 if (isValid) {
                     orgConnection.Status__c = 'Connected';
-                    // orgConnectionsToUpdate.add(orgConnection);
                 } else {
                     orgConnection.Status__c = 'Failed';
-                    // orgConnectionsToUpdate.add(orgConnection);
                 }
             }
         }
 
         update orgConnectionsList;
-
-        // if (!orgConnectionsToUpdate.isEmpty()) {
-        //     update orgConnectionsToUpdate;
-        // }
     }
 
     private static Boolean isRefreshTokenValid(String loginUrl, String refreshToken) {
-        HttpRequest req = new HttpRequest();
-        req.setEndpoint(loginUrl + '/services/oauth2/token');
-        req.setMethod('POST');
-        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        if (String.isBlank(loginUrl) || String.isBlank(refreshToken)) {
+            return false;
+        }
 
-        String body = 'grant_type=refresh_token' +
-                      '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                      '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                      '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+        try {
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(loginUrl + '/services/oauth2/token');
+            req.setMethod('POST');
+            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+            // req.setTimeout(10000);
 
-        req.setBody(body);
+            String body = 'grant_type=refresh_token' +
+                          '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                          '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                          '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+            req.setBody(body);
 
-        Http http = new Http();
-        HttpResponse res = http.send(req);
+            Http http = new Http();
+            HttpResponse res = http.send(req);
 
-        return res.getStatusCode() == 200;
+            return res.getStatusCode() == 200;
+        } catch (Exception e) {
+            System.debug('Token validation error: ' + e.getMessage());
+            return false;
+        }
     }
 }

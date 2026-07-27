@@ -73,27 +73,26 @@
                                 <template if:true={orgConnection.isStatusFailed}>
                                     <p class="error-msg">Token invalid — org may be expired</p>
                                 </template>
-
-                                <!-- <template if:true={orgConnection.isStatusConnected}>
-                                    <button 
-                                        class="btn btn-revoke"
-                                        onclick={handleRevokeRefreshToken} 
-                                        data-org-id={orgConnection.Id}>
-                                        Revoke token inf
-                                    </button>
-                                </template> -->
                             </div>
                             
                             <div class="card-buttons">
+                                <button 
+                                    class="btn" 
+                                    onclick={handleDeleteOrgConnection} 
+                                    data-org-id={orgConnection.Id} 
+                                    data-org-name={orgConnection.Org_Name__c}>
+                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                    Delete
+                                </button>
                                 <template if:true={orgConnection.isStatusConnected}>
-                                    <button 
+                                    <!-- <button 
                                         class="btn" 
                                         onclick={handleDeleteOrgConnection} 
                                         data-org-id={orgConnection.Id} 
                                         data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
-                                    </button>
+                                    </button> -->
                                     <button 
                                         class="btn"
                                         onclick={handleDisconnectOrgConnection} 
@@ -112,14 +111,14 @@
                                 </template>
 
                                 <template if:true={orgConnection.isStatusFailed}>
-                                    <button 
+                                    <!-- <button 
                                         class="btn" 
                                         onclick={handleDeleteOrgConnection} 
                                         data-org-id={orgConnection.Id} 
                                         data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
-                                    </button>
+                                    </button> -->
                                     <button 
                                         class="btn"
                                         onclick={handleAuthorizeOrgConnection} 
@@ -131,14 +130,14 @@
                                 </template>
 
                                 <template if:true={orgConnection.isStatusNotLinked}>
-                                    <button 
+                                    <!-- <button 
                                         class="btn" 
                                         onclick={handleDeleteOrgConnection} 
                                         data-org-id={orgConnection.Id} 
                                         data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
-                                    </button>
+                                    </button> -->
                                     <button 
                                         class="btn btn-primary"
                                         onclick={handleAuthorizeOrgConnection} 
@@ -170,7 +169,7 @@
                         </div>
 
                         <div class="modal-body">
-                            <lightning-record-edit-form object-api-name="Org_Connection__c">
+                            <!-- <lightning-record-edit-form object-api-name="Org_Connection__c"> -->
                                 <lightning-input 
                                     type="text" 
                                     label="Org name" 
@@ -200,10 +199,10 @@
                                     onchange={handleOrgLoginUrlChange}
                                     class="field"
                                 ></lightning-input>
-                            </lightning-record-edit-form>
+                            <!-- </lightning-record-edit-form> -->
                             <p class="hint">At least one of Type or Login URL must be filled</p>
                             <div class="actions">
-                                <button class="btn" onclick={handleCloseModal}>Cancle</button>
+                                <button class="btn" onclick={handleCloseModal}>Cancel</button>
                                 <button class="btn btn-primary" onclick={handleAddOrgConnection}>Save & authorize</button>
                             </div>
                         </div>
