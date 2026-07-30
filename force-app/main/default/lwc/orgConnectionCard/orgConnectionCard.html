@@ -1,0 +1,93 @@
+<template>
+    <div class="card">
+        <!-- Верхняя часть: Имя и Статус -->
+        <div class="card-top">
+            <h3 class="card-name"
+                role="button"
+                tabindex="0"
+                onclick={handleNavigate}
+                onkeydown={handleNavigateKey}
+                title={record.Org_Name__c}>
+                {record.Org_Name__c}
+            </h3>
+            <!-- record.statusSpanClass должен возвращать строку вида "card-status status-green" -->
+            <span class={statusSpanClass}>
+                <lightning-icon icon-name={statusIcon} size="x-small"></lightning-icon>
+                {record.Status__c}
+            </span>
+        </div>
+
+        <!-- Тип организации -->
+        <div class="card-type">{record.Type__c}</div>
+
+        <!-- Информация -->
+        <div class="card-info">
+            <div class="info-row">
+                <lightning-icon icon-name="utility:http" size="x-small"></lightning-icon>
+                <span>{record.Login_Url__c}</span>
+            </div>
+            
+            <template if:false={isStatusNotLinked}>
+                <div class="info-row">
+                    <lightning-icon icon-name="utility:profile_alt" size="x-small"></lightning-icon>
+                    <span>{record.UserName__c}</span>
+                </div>
+            </template>
+
+            <template if:true={isStatusFailed}>
+                <p class="error-msg">Token invalid — org may be expired</p>
+            </template>
+        </div>
+        
+        <!-- Кнопки действий -->
+        <div class="card-buttons">
+            <!-- Кнопка Delete общая для всех -->
+            <button class="btn" 
+                    onclick={handleDelete} 
+                    data-id={record.Id} 
+                    data-name={record.Org_Name__c}>
+                <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                Delete
+            </button>
+
+            <!-- Connected -->
+            <template if:true={isStatusConnected}>
+                <button class="btn"
+                        onclick={handleDisconnect} 
+                        data-id={record.Id} 
+                        data-name={record.Org_Name__c}>
+                    <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
+                    Disconnect
+                </button>
+                <button class="btn btn-primary"
+                        onclick={handleOpen} 
+                        data-id={record.Id}>
+                    <lightning-icon icon-name="utility:forward_up" size="xx-small"></lightning-icon>
+                    Open org
+                </button>
+            </template>
+
+            <!-- Failed -->
+            <template if:true={isStatusFailed}>
+                <button class="btn"
+                        onclick={handleAuthorize} 
+                        data-id={record.Id} 
+                        data-name={record.Org_Name__c}>
+                    <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
+                    Re-authorize
+                </button>
+            </template>
+
+            <!-- Not linked -->
+            <template if:true={isStatusNotLinked}>
+                <button class="btn btn-primary"
+                        onclick={handleAuthorize} 
+                        data-id={record.Id} 
+                        data-name={record.Org_Name__c}>
+                    <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
+                    Authorize
+                </button>
+            </template>
+        </div>
+    </div>
+</template>
