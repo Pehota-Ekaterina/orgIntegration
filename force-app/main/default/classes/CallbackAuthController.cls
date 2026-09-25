@@ -42,10 +42,11 @@ public without sharing class CallbackAuthController {
         // System.debug('code:' + code);
         // System.debug('state:' + state);
 
-        // List<String> stateParts = state.split('__');
-        // String recordId = stateParts[0];
-        String recordId = state;
+        List<String> stateParts = state.split('__');
+        String recordId = stateParts[0];
+        // String recordId = state;
         // String context = stateParts.size() > 1 ? stateParts[1] : 'lightning';
+        String context = stateParts[1];
 
         // System.debug('recordId:' + recordId);
         // System.debug('context:' + context);
@@ -102,8 +103,8 @@ public without sharing class CallbackAuthController {
                 // pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed: status code', 'UTF-8'));
                 // pageRef.setRedirect(true);
                 // return pageRef;
-                // return buildErrorRedirect(recordId, context, 'Authorization failed: status code');
-                return buildErrorRedirect(recordId, 'Authorization failed: status code');
+                return buildErrorRedirect(recordId, context, 'Authorization failed: status code');
+                // return buildErrorRedirect(recordId, 'Authorization failed: status code');
             }
 
             System.debug('res.getStatusCode():' + res.getStatusCode());
@@ -128,8 +129,8 @@ public without sharing class CallbackAuthController {
                 // pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed: refresh token', 'UTF-8'));
                 // pageRef.setRedirect(true);
                 // return pageRef;
-                // return buildErrorRedirect(recordId, context, 'Authorization failed: refresh token');
-                return buildErrorRedirect(recordId, 'Authorization failed: refresh token');
+                return buildErrorRedirect(recordId, context, 'Authorization failed: refresh token');
+                // return buildErrorRedirect(recordId, 'Authorization failed: refresh token');
             }
             
             orgConnection.Refresh_Token__c = refreshToken;
@@ -146,8 +147,8 @@ public without sharing class CallbackAuthController {
             // pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
             // pageRef.setRedirect(true);
             // return pageRef;
-            // return buildSuccessRedirect(recordId, context);
-            return buildSuccessRedirect(recordId);
+            return buildSuccessRedirect(recordId, context);
+            // return buildSuccessRedirect(recordId);
         } catch (Exception e) {
             // PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
             // pageRef.getParameters().put('c__toast', 'error');
@@ -155,30 +156,30 @@ public without sharing class CallbackAuthController {
             // pageRef.setRedirect(true);
             // return pageRef;
             System.debug('catch buildErrorRedirect call');
-            // return buildErrorRedirect(recordId, context, 'Authorization failed');
-            return buildErrorRedirect(recordId, 'Authorization failed');
+            return buildErrorRedirect(recordId, context, 'Authorization failed');
+            // return buildErrorRedirect(recordId, 'Authorization failed');
         }
     }
 
-    // private PageReference buildSuccessRedirect(String recordId, String context) {
-    private PageReference buildSuccessRedirect(String recordId) {
+    private PageReference buildSuccessRedirect(String recordId, String context) {
+    // private PageReference buildSuccessRedirect(String recordId) {
         String baseUrl;
         String recordPath;
 
         System.debug('buildSuccessRedirect START ');
         System.debug('Site.getBaseUrl(): ' + Site.getBaseUrl());
 
-        baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-        recordPath = recordId;
+        // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+        // recordPath = recordId;
         
-        // if (context == 'community') {
-        //     // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
-        //     baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-        //     recordPath = recordId;
-        // } else {
-        //     baseUrl = URL.getOrgDomainUrl().toExternalForm();
-        //     recordPath = '/lightning/r/Org_Connection__c/' + recordId + '/view';
-        // }
+        if (context == 'community') {
+            // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+            baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+            recordPath = recordId;
+        } else {
+            baseUrl = URL.getOrgDomainUrl().toExternalForm();
+            recordPath = '/lightning/r/Org_Connection__c/' + recordId + '/view';
+        }
 
         System.debug('baseUrl: ' + baseUrl);
         
@@ -190,40 +191,40 @@ public without sharing class CallbackAuthController {
         return pageRef;
     }
 
-    // private PageReference buildErrorRedirect(String recordId, String context, String errorMessage) {
-    private PageReference buildErrorRedirect(String recordId, String errorMessage) {
+    private PageReference buildErrorRedirect(String recordId, String context, String errorMessage) {
+    // private PageReference buildErrorRedirect(String recordId, String errorMessage) {
 
         System.debug('start buildErrorRedirect');
         String baseUrl;
         String recordPath;
 
-        if (recordId != null && recordId != '') {
-            baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-            recordPath = recordId;
-        } else {
-            baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-            recordPath = '';
-        }
-        
         // if (recordId != null && recordId != '') {
-        //     if (context == 'community') {
-        //         // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
-        //         baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-        //         recordPath = recordId;
-        //     } else {
-        //         baseUrl = URL.getOrgDomainUrl().toExternalForm();
-        //         recordPath = '/lightning/r/Org_Connection__c/' + recordId + '/view';
-        //     }
+        //     baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+        //     recordPath = recordId;
         // } else {
-        //     if (context == 'community') {
-        //         // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
-        //         baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-        //         recordPath = '';
-        //     } else {
-        //         baseUrl = URL.getOrgDomainUrl().toExternalForm();
-        //         recordPath = '/lightning/page/home';
-        //     }
+        //     baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+        //     recordPath = '';
         // }
+        
+        if (recordId != null && recordId != '') {
+            if (context == 'community') {
+                // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+                baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+                recordPath = recordId;
+            } else {
+                baseUrl = URL.getOrgDomainUrl().toExternalForm();
+                recordPath = '/lightning/r/Org_Connection__c/' + recordId + '/view';
+            }
+        } else {
+            if (context == 'community') {
+                // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+                baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+                recordPath = '';
+            } else {
+                baseUrl = URL.getOrgDomainUrl().toExternalForm();
+                recordPath = '/lightning/page/home';
+            }
+        }
         
         PageReference pageRef = new PageReference(baseUrl + recordPath);
         // pageRef.getParameters().put('c__toast', 'error');

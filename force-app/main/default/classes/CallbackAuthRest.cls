@@ -17,13 +17,16 @@ global without sharing class CallbackAuthRest {
         if (String.isBlank(code) || String.isBlank(state)) {
             res.statusCode = 302;
             res.addHeader('Location', buildErrorUrl(null, 'lightning', 'Missing code or state parameters'));
+            // res.addHeader('Location', buildErrorUrl(null, 'Missing code or state parameters'));
             return;
         }
 
         // 2. Парсим state (формат: recordId__context)
         List<String> stateParts = state.split('__');
         String recordId = stateParts[0];
-        String context = stateParts.size() > 1 ? stateParts[1] : 'lightning';
+        // String recordId = state;
+        // String context = stateParts.size() > 1 ? stateParts[1] : 'lightning';
+        String context = stateParts[1];
         
         Org_Connection__c orgConnection;
         try {
@@ -36,6 +39,7 @@ global without sharing class CallbackAuthRest {
         } catch (Exception e) {
             res.statusCode = 302;
             res.addHeader('Location', buildErrorUrl(recordId, context, 'Record not found'));
+            // res.addHeader('Location', buildErrorUrl(recordId, 'Record not found'));
             return;
         }
         
@@ -62,6 +66,7 @@ global without sharing class CallbackAuthRest {
             if (tokenRes.getStatusCode() != 200) {
                 res.statusCode = 302;
                 res.addHeader('Location', buildErrorUrl(recordId, context, 'Authorization failed: status code ' + tokenRes.getStatusCode()));
+                // res.addHeader('Location', buildErrorUrl(recordId, 'Authorization failed: status code ' + tokenRes.getStatusCode()));
                 return;
             }
 
@@ -79,6 +84,7 @@ global without sharing class CallbackAuthRest {
             if (!isRefreshTokenValid(orgUrl, refreshToken)) {
                 res.statusCode = 302;
                 res.addHeader('Location', buildErrorUrl(recordId, context, 'Authorization failed: invalid refresh token'));
+                // res.addHeader('Location', buildErrorUrl(recordId, 'Authorization failed: invalid refresh token'));
                 return;
             }
             
@@ -93,18 +99,24 @@ global without sharing class CallbackAuthRest {
             // 7. Успешный редирект
             res.statusCode = 302;
             res.addHeader('Location', buildSuccessUrl(recordId, context));
+            // res.addHeader('Location', buildSuccessUrl(recordId));
             
         } catch (Exception e) {
             res.statusCode = 302;
             res.addHeader('Location', buildErrorUrl(recordId, context, 'Authorization failed: ' + e.getMessage()));
+            // res.addHeader('Location', buildErrorUrl(recordId, 'Authorization failed: ' + e.getMessage()));
         }
     }
 
     // --- Вспомогательные методы для формирования URL редиректа ---
 
     private static String buildSuccessUrl(String recordId, String context) {
+    // private static String buildSuccessUrl(String recordId) {
         String baseUrl;
         String recordPath;
+
+        // baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+        // recordPath = recordId;
 
         if (context == 'community') {
             baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
@@ -118,13 +130,17 @@ global without sharing class CallbackAuthRest {
         // finalUrl += '?c__toast=success&c__message=' + EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8');
         
         return finalUrl;
+        // return baseUrl + recordPath;
     }
 
     private static String buildErrorUrl(String recordId, String context, String errorMessage) {
+    // private static String buildErrorUrl(String recordId, String errorMessage) {
         String baseUrl;
         String recordPath;
         
         if (String.isNotBlank(recordId)) {
+            baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+            recordPath = recordId;
             if (context == 'community') {
                 baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
                 recordPath = recordId;
@@ -133,6 +149,8 @@ global without sharing class CallbackAuthRest {
                 recordPath = '/lightning/r/Org_Connection__c/' + recordId + '/view';
             }
         } else {
+            baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
+            recordPath = '';
             if (context == 'community') {
                 baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/org-connection/';
                 recordPath = '';
@@ -146,6 +164,7 @@ global without sharing class CallbackAuthRest {
         // finalUrl += '?c__toast=error&c__message=' + EncodingUtil.urlEncode(errorMessage, 'UTF-8');
         
         return finalUrl;
+        // return baseUrl + recordPath;
     }
 
     private static String getUsernameViaUserInfo(String accessToken, String orgUrl) {
