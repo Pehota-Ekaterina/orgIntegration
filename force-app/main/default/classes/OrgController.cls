@@ -2,7 +2,9 @@ public with sharing class OrgController {
 
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    private static final String redirectUri = ConfigManager.getRedirectUrl();
+    // private static final String redirectUri = ConfigManager.getRedirectUrl();
+    private static final String redirectUriLightning = ConfigManager.getRedirectUrlLightning();
+    private static final String redirectUriCommunity = ConfigManager.getRedirectUrlCommunity();
 
     @AuraEnabled(cacheable=true)
     public static List<Org_Connection__c> getOrgConnections() {
@@ -11,6 +13,13 @@ public with sharing class OrgController {
             FROM Org_Connection__c
             LIMIT 100
         ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean checkPermissionAdmin() {
+        // System.debug('custom permission: ' + FeatureManagement.checkPermission('Manage_org_connection'));
+        // System.debug('user:' + UserInfo.getUserId());
+        return FeatureManagement.checkPermission('Manage_org_connection');        
     }
 
     @AuraEnabled(cacheable=true)
@@ -39,6 +48,14 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static String saveOrgConnection(Map<String, Object> orgData) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to save org connection.');
+        }
+
+        if (orgData == null || orgData.isEmpty()) {
+            throw new AuraHandledException('Invalid org connection data provided.');
+        }
+
         Org_Connection__c orgConnection = new Org_Connection__c();
         orgConnection.Org_Name__c = (String) orgData.get('Org_Name__c');
         orgConnection.Type__c = (String) orgData.get('Type__c');
@@ -50,6 +67,10 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void deleteOrgConnection(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
@@ -71,6 +92,10 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void disconnectOrgConnection(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
@@ -177,7 +202,13 @@ public with sharing class OrgController {
             }        
             Org_Connection__c orgConnection = orgConnectionsList[0];
 
-            String state = orgConnectionId;
+            String networkId = Network.getNetworkId();
+            String context = String.isNotBlank(networkId) ? 'community' : 'lightning';
+        
+
+            String redirectUri = context == 'community' ? redirectUriCommunity : redirectUriLightning;
+
+            String state = orgConnectionId + '__' + context;
             String baseUrl = orgConnection.Login_Url__c;
             
             return baseUrl + '/services/oauth2/authorize?' +
@@ -197,7 +228,7 @@ public with sharing class OrgController {
         List<Org_Connection__c> orgConnectionsList = [SELECT Id, Login_Url__c, Refresh_Token__c, Status__c FROM Org_Connection__c];
         List<Org_Connection__c> orgConnectionsToUpdate = new List<Org_Connection__c>();
 
-        for (Org_Connection__c orgConnection : orgConnectionsList) {
+        for (Org_Connection__c orgConnection : orgConnectionsList) {            
             if (String.isBlank(orgConnection.Refresh_Token__c)) {
                 orgConnection.Status__c = 'Not linked';
             } else {
@@ -216,6 +247,7 @@ public with sharing class OrgController {
         update orgConnectionsList;
     }
 
+    @TestVisible
     private static Boolean isRefreshTokenValid(String loginUrl, String refreshToken) {
         if (String.isBlank(loginUrl) || String.isBlank(refreshToken)) {
             return false;
@@ -239,7 +271,6 @@ public with sharing class OrgController {
 
             return res.getStatusCode() == 200;
         } catch (Exception e) {
-            System.debug('Token validation error: ' + e.getMessage());
             return false;
         }
     }
