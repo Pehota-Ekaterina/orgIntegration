@@ -166,11 +166,12 @@ public with sharing class OrgController {
 
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
 
-            if(res.getStatusCode() != 200) {
+            if (res.getStatusCode() != 200 && checkPermissionAdmin()) {
                 orgConnection.Status__c = 'Failed';
                 update orgConnection;
-
-                return null; 
+            }
+            if (res.getStatusCode() != 200) {
+                throw new AuraHandledException('Failed to refresh access token. Status code: ' + res.getStatusCode());
             }
 
             String newAccessToken = (String) jsonResp.get('access_token');
