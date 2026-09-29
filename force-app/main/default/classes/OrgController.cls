@@ -2,8 +2,6 @@ public with sharing class OrgController {
 
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    // private static final String redirectUri = ConfigManager.getRedirectUrl();
-    // private static final String redirectUriLightning = ConfigManager.getRedirectUrlLightning();
     private static final String redirectUriCommunity = ConfigManager.getRedirectUrlCommunity();
 
     @AuraEnabled(cacheable=true)
@@ -17,8 +15,6 @@ public with sharing class OrgController {
 
     @AuraEnabled(cacheable=true)
     public static Boolean checkPermissionAdmin() {
-        // System.debug('custom permission: ' + FeatureManagement.checkPermission('Manage_org_connection'));
-        // System.debug('user:' + UserInfo.getUserId());
         return FeatureManagement.checkPermission('Manage_org_connection');        
     }
 
@@ -205,14 +201,14 @@ public with sharing class OrgController {
 
             String networkId = Network.getNetworkId();
             // String context = String.isNotBlank(networkId) ? 'community' : 'lightning';
-            String context = 'community';
+            // String context = 'community';
         
 
             // String redirectUri = context == 'community' ? redirectUriCommunity : redirectUriLightning;
             String redirectUri = redirectUriCommunity;
 
-            String state = orgConnectionId + '__' + context;
-            // String state = orgConnectionId;
+            // String state = orgConnectionId + '__' + context;
+            String state = orgConnectionId;
             String baseUrl = orgConnection.Login_Url__c;
             
             return baseUrl + '/services/oauth2/authorize?' +

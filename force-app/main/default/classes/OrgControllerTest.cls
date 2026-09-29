@@ -190,7 +190,7 @@ private class OrgControllerTest {
         Test.startTest();
         try {
             OrgController.saveOrgConnection(orgConnectionData);
-            System.assert(false, 'Expected AuraHandledException to be thrown for empty org data, but no exception was thrown.');
+            System.assert(false, 'Expected AuraHandledException to be thrown for null ID, but no exception was thrown.');
         } catch (Exception e) {
             System.assert(e instanceof AuraHandledException, 'Expected AuraHandledException for empty org data.');
         }
@@ -248,7 +248,7 @@ private class OrgControllerTest {
         Test.stopTest();
     }
 
-    private class SuccessHttpMock implements HttpCalloutMock {
+    private class SuccessTokenMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
@@ -258,7 +258,7 @@ private class OrgControllerTest {
         }
     }
 
-    private class FailureHttpMock implements HttpCalloutMock {
+    private class FailedTokenMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
@@ -298,7 +298,7 @@ private class OrgControllerTest {
     static void openOrgConnectionSuccessTest() {
         Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c WHERE Org_Name__c = 'Test Org 2.1' LIMIT 1];
 
-        Test.setMock(HttpCalloutMock.class, new SuccessHttpMock());
+        Test.setMock(HttpCalloutMock.class, new SuccessTokenMock());
         Test.startTest();
         String resultUrl = OrgController.openOrgConnection(testRecord.Id);
         Test.stopTest();
@@ -312,12 +312,15 @@ private class OrgControllerTest {
     static void openOrgConnectionFailureTest() {
         Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c WHERE Org_Name__c = 'Test Org 2.1' LIMIT 1];
 
-        Test.setMock(HttpCalloutMock.class, new FailureHttpMock());
+        Test.setMock(HttpCalloutMock.class, new FailedTokenMock());
         Test.startTest();
-        String failResult = OrgController.openOrgConnection(testRecord.Id);
+        try {
+            OrgController.openOrgConnection(testRecord.Id);
+            System.assert(false, 'Ожидалось исключение при ошибке авторизации');
+        } catch (Exception e) {
+            System.assert(e instanceof AuraHandledException);
+        }
         Test.stopTest();
-
-        System.assertEquals(null, failResult, 'Expected null result for failed request');
         
         Org_Connection__c updatedRecord = [SELECT Status__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
         System.assertEquals('Failed', updatedRecord.Status__c, 'Expected status to change to Failed');
@@ -370,7 +373,7 @@ private class OrgControllerTest {
         Org_Connection__c noTokenRecord = [SELECT Id FROM Org_Connection__c WHERE Org_Name__c = 'Test Org 2.2' LIMIT 1];
         Org_Connection__c invalidTokenRecord = [SELECT Id FROM Org_Connection__c WHERE Org_Name__c = 'Test Org 2.3' LIMIT 1];
 
-        Test.setMock(HttpCalloutMock.class, new FailureHttpMock());
+        Test.setMock(HttpCalloutMock.class, new FailedTokenMock());
         Test.startTest();
         OrgController.connectionStatusCheck();
         Test.stopTest();
@@ -387,7 +390,7 @@ private class OrgControllerTest {
         String loginUrl = 'https://test.salesforce.com';
         String validToken = 'valid_refresh_token_123';
 
-        Test.setMock(HttpCalloutMock.class, new SuccessHttpMock());
+        Test.setMock(HttpCalloutMock.class, new SuccessTokenMock());
         Test.startTest();
         Boolean resultValid = OrgController.isRefreshTokenValid(loginUrl, validToken);
         Test.stopTest();
@@ -415,7 +418,7 @@ private class OrgControllerTest {
         String loginUrl = 'https://test.salesforce.com';
         String invalidToken = 'invalid_refresh_token_999';
 
-        Test.setMock(HttpCalloutMock.class, new FailureHttpMock());
+        Test.setMock(HttpCalloutMock.class, new FailedTokenMock());
         Test.startTest();
         Boolean resultInvalid = OrgController.isRefreshTokenValid(loginUrl, invalidToken);
         Test.stopTest();

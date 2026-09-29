@@ -32,20 +32,6 @@ public with sharing class ConfigManager {
         return config != null ? config.Client_Secret__c : null;
     }
 
-    public static String getRedirectUrl() {
-        OAuth_Config__mdt config = getActiveConfig();
-
-        System.debug('getRedirectUrl config: ' + config);
-
-        return config != null ? config.Redirect_Url__c : null;
-    }
-
-    public static String getRedirectUrlLightning() {
-        OAuth_Config__mdt config = getActiveConfig();
-
-        return config != null ? config.Redirect_Url_lightning__c : null;
-    }
-
     public static String getRedirectUrlCommunity() {
         OAuth_Config__mdt config = getActiveConfig();
 

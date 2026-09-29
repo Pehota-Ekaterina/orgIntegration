@@ -1,62 +1,49 @@
 @isTest
 private class CallbackAuthRestTest {
-    private class SuccessTokenExchangeMock implements HttpCalloutMock {
+    private class SuccessMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
             
-            if (req.getEndpoint().contains('/services/oauth2/token') && 
-                req.getBody().contains('grant_type=authorization_code')) {
+            if (req.getEndpoint().contains('/services/oauth2/token') && req.getBody().contains('grant_type=authorization_code')) {
                 res.setStatusCode(200);
-                res.setBody('{' +
-                    '"access_token": "mocked_access_token_12345",' +
-                    '"instance_url": "https://mocked-instance.salesforce.com",' +
-                    '"refresh_token": "mocked_refresh_token_67890"' +
-                '}');
+                res.setBody('{"access_token": "mock_access_token_123", "instance_url": "https://mock.instance.com", "refresh_token": "mock_refresh_token_456"}');
             } else if (req.getEndpoint().contains('/services/oauth2/userinfo')) {
                 res.setStatusCode(200);
                 res.setBody('{"username": "testuser@example.com", "preferred_username": "testuser@example.com"}');
-            } else if (req.getEndpoint().contains('/services/oauth2/token') && 
-                       req.getBody().contains('grant_type=refresh_token')) {
+            } else if (req.getEndpoint().contains('/services/oauth2/token') && req.getBody().contains('grant_type=refresh_token')) {
                 res.setStatusCode(200);
-                res.setBody('{"access_token": "new_access_token"}');
+                res.setBody('{"access_token": "new_mock_access_token"}');
             } else {
                 res.setStatusCode(400);
                 res.setBody('{"error": "unknown_request"}');
             }
-            
             return res;
         }
     }
 
-    private class FailedTokenExchangeMock implements HttpCalloutMock {
+    private class AuthFailureMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            res.setStatusCode(401);
-            res.setBody('{"error": "invalid_grant", "error_description": "expired authorization code"}');
+            res.setStatusCode(400);
+            res.setBody('{"error": "invalid_grant", "error_description": "Authorization code expired"}');
             return res;
         }
     }
 
-    private class InvalidRefreshTokenMock implements HttpCalloutMock {
+    private class InvalidRefreshMock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
             
-            if (req.getEndpoint().contains('/services/oauth2/token') && 
-                req.getBody().contains('grant_type=authorization_code')) {
+            if (req.getEndpoint().contains('/services/oauth2/token') && req.getBody().contains('grant_type=authorization_code')) {
                 res.setStatusCode(200);
-                res.setBody('{' +
-                    '"access_token": "mocked_access_token_12345",' +
-                    '"instance_url": "https://mocked-instance.salesforce.com",' +
-                    '"refresh_token": "invalid_refresh_token"' +
-                '}');
+                res.setBody('{"access_token": "mock_access_token_123", "instance_url": "https://mock.instance.com", "refresh_token": "invalid_refresh_token"}');
             } else if (req.getEndpoint().contains('/services/oauth2/userinfo')) {
                 res.setStatusCode(200);
                 res.setBody('{"username": "testuser@example.com"}');
-            } else if (req.getEndpoint().contains('/services/oauth2/token') && 
-                       req.getBody().contains('grant_type=refresh_token')) {
+            } else if (req.getEndpoint().contains('/services/oauth2/token') && req.getBody().contains('grant_type=refresh_token')) {
                 res.setStatusCode(400);
                 res.setBody('{"error": "invalid_grant"}');
             }
@@ -64,29 +51,10 @@ private class CallbackAuthRestTest {
         }
     }
 
-    private class UsernameFailureMock implements HttpCalloutMock {
-        public HttpResponse respond(HttpRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setHeader('Content-Type', 'application/json');
-            
-            if (req.getEndpoint().contains('/services/oauth2/token')) {
-                res.setStatusCode(200);
-                res.setBody('{' +
-                    '"access_token": "mocked_access_token",' +
-                    '"instance_url": "https://mocked-instance.salesforce.com",' +
-                    '"refresh_token": "mocked_refresh_token"' +
-                '}');
-            } else if (req.getEndpoint().contains('/services/oauth2/userinfo')) {
-                res.setStatusCode(500);
-                res.setBody('{"error": "internal_server_error"}');
-            }
-            
-            return res;
-        }
-    }
-
     @TestSetup
     static void setupTestData() {
+        OAuth_Config__mdt config = [SELECT DeveloperName FROM OAuth_Config__mdt WHERE DeveloperName = 'Main_Config' LIMIT 1];
+
         Org_Connection__c testRecord = new Org_Connection__c(
             Org_Name__c = 'Test Org for Callback',
             Login_Url__c = 'https://test.salesforce.com',
@@ -103,183 +71,106 @@ private class CallbackAuthRestTest {
         req.requestURI = '/services/apexrest/oauth/callback';
         req.httpMethod = 'GET';
         
-        if (code != null) {
-            req.params.put('code', code);
-        }
-        if (state != null) {
-            req.params.put('state', state);
-        }
+        if (code != null) req.params.put('code', code);
+        if (state != null) req.params.put('state', state);
         
         RestContext.request = req;
         RestContext.response = res;
     }
 
-    // @isTest
-    // static void testHandleCallback_Success() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__lightning';
+    @isTest
+    static void handleCallbackTestMissingParamCode() {
+        Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
         
-    //     Test.setMock(HttpCalloutMock.class, new SuccessTokenExchangeMock());
-    //     setupRestContext('valid_auth_code_123', state);
+        setupRestContext(null, testRecord.Id);
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
-        
-    //     // Проверяем статус ответа
-    //     System.assertEquals(302, RestContext.response.statusCode, 'Должен быть редирект (302)');
-        
-    //     // Проверяем заголовок Location
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null, 'Location header должен присутствовать');
-    //     System.assert(locationHeader.contains(testRecord.Id), 'URL должен содержать ID записи');
-        
-    //     // Проверяем, что запись обновилась в БД
-    //     Org_Connection__c updatedRecord = [
-    //         SELECT Status__c, Refresh_Token__c, Instance_Url__c, UserName__c 
-    //         FROM Org_Connection__c 
-    //         WHERE Id = :testRecord.Id
-    //     ];
-        
-    //     System.assertEquals('Connected', updatedRecord.Status__c, 'Статус должен быть Connected');
-    //     System.assertEquals('mocked_refresh_token_67890', updatedRecord.Refresh_Token__c, 'Refresh token должен быть сохранен');
-    //     System.assertEquals('https://mocked-instance.salesforce.com', updatedRecord.Instance_Url__c, 'Instance URL должен быть сохранен');
-    //     System.assertEquals('testuser@example.com', updatedRecord.UserName__c, 'Username должен быть сохранен');
-    // }
+        System.assertEquals(302, RestContext.response.statusCode, 'Expected a redirect due to missing code parameter');
+    }
 
-    // @isTest
-    // static void testHandleCallback_Success_CommunityContext() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__community';
+    @isTest
+    static void handleCallbackTestMissingParamState() {
+        Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
         
-    //     Test.setMock(HttpCalloutMock.class, new SuccessTokenExchangeMock());
-    //     setupRestContext('valid_auth_code_123', state);
+        setupRestContext('valid_code_123', null);
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
-        
-    //     System.assertEquals(302, RestContext.response.statusCode);
-        
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader.contains('my.site.com'), 'URL должен содержать community domain');
-    //     System.assert(locationHeader.contains(testRecord.Id), 'URL должен содержать ID записи');
-    // }
+        System.assertEquals(302, RestContext.response.statusCode, 'Expected a redirect due to missing state parameter');
+    }
 
-    // @isTest
-    // static void testHandleCallback_MissingCode() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__lightning';
+    @isTest
+    static void handleCallbackTestRecordNotFound() {
+        String fakeId = 'a00000000000000AAA';
+        setupRestContext('valid_code_123', fakeId);
         
-    //     setupRestContext(null, state); // code = null
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
-        
-    //     System.assertEquals(302, RestContext.response.statusCode, 'Должен быть редирект');
-        
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null, 'Location header должен присутствовать');
-    //     // URL должен вести на error page (без recordId, т.к. code отсутствует)
-    // }
+        System.assertEquals(302, RestContext.response.statusCode);
+    }
 
-    // @isTest
-    // static void testHandleCallback_MissingState() {
-    //     setupRestContext('valid_auth_code_123', null); // state = null
+    @isTest
+    static void handleCallbackTestSuccess() {
+        Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
+        setupRestContext('valid_auth_code_123', testRecord.Id);
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
+        Test.setMock(HttpCalloutMock.class, new SuccessMock());
         
-    //     System.assertEquals(302, RestContext.response.statusCode);
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null);
-    // }
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
+        
+        System.assertEquals(302, RestContext.response.statusCode);
+        
+        Org_Connection__c updatedRecord = [
+            SELECT Id, Status__c, Refresh_Token__c, Instance_Url__c, UserName__c 
+            FROM Org_Connection__c 
+            WHERE Id = :testRecord.Id
+        ];
+        
+        System.assertEquals('Connected', updatedRecord.Status__c);
+        System.assertEquals('mock_refresh_token_456', updatedRecord.Refresh_Token__c);
+        System.assertEquals('https://mock.instance.com', updatedRecord.Instance_Url__c);
+        System.assertEquals('testuser@example.com', updatedRecord.UserName__c);
+    }
 
-    // @isTest
-    // static void testHandleCallback_RecordNotFound() {
-    //     String fakeId = 'a00000000000000AAA';
-    //     String state = fakeId + '__lightning';
+    @isTest
+    static void handleCallbackTestAuthorizationFailed() {
+        Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
+        setupRestContext('invalid_auth_code', testRecord.Id);
         
-    //     Test.setMock(HttpCalloutMock.class, new SuccessTokenExchangeMock());
-    //     setupRestContext('valid_auth_code_123', state);
+        Test.setMock(HttpCalloutMock.class, new AuthFailureMock());
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
         
-    //     System.assertEquals(302, RestContext.response.statusCode);
+        System.assertEquals(302, RestContext.response.statusCode);
         
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null);
-    //     // Проверяем, что запись НЕ была обновлена (т.к. её не нашли)
-    //     List<Org_Connection__c> records = [SELECT Status__c FROM Org_Connection__c WHERE Id = :fakeId];
-    //     System.assertEquals(0, records.size(), 'Запись не должна существовать');
-    // }
+        Org_Connection__c unchangedRecord = [SELECT Status__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
+        System.assertEquals('Not linked', unchangedRecord.Status__c);
+    }
 
-    // @isTest
-    // static void testHandleCallback_AuthorizationFailed() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__lightning';
+    @isTest
+    static void handleCallbackTestInvalidRefreshToken() {
+        Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
+        setupRestContext('valid_auth_code_123', testRecord.Id);
         
-    //     Test.setMock(HttpCalloutMock.class, new FailedTokenExchangeMock());
-    //     setupRestContext('invalid_auth_code', state);
+        Test.setMock(HttpCalloutMock.class, new InvalidRefreshMock());
         
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
+        Test.startTest();
+        CallbackAuthRest.handleCallback();
+        Test.stopTest();
         
-    //     System.assertEquals(302, RestContext.response.statusCode);
+        System.assertEquals(302, RestContext.response.statusCode);
         
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null);
-        
-    //     // Проверяем, что запись НЕ была обновлена
-    //     Org_Connection__c unchangedRecord = [SELECT Status__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
-    //     System.assertEquals('Not linked', unchangedRecord.Status__c, 'Статус не должен измениться при ошибке');
-    // }
-
-    // @isTest
-    // static void testHandleCallback_InvalidRefreshToken() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__lightning';
-        
-    //     Test.setMock(HttpCalloutMock.class, new InvalidRefreshTokenMock());
-    //     setupRestContext('valid_auth_code_123', state);
-        
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
-        
-    //     System.assertEquals(302, RestContext.response.statusCode);
-        
-    //     String locationHeader = RestContext.response.getHeader('Location');
-    //     System.assert(locationHeader != null);
-        
-    //     // Проверяем, что запись НЕ была обновлена (refresh token невалиден)
-    //     Org_Connection__c unchangedRecord = [SELECT Status__c, Refresh_Token__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
-    //     System.assertEquals('Not linked', unchangedRecord.Status__c, 'Статус не должен измениться');
-    //     System.assertEquals(null, unchangedRecord.Refresh_Token__c, 'Refresh token не должен быть сохранен');
-    // }
-
-    // @isTest
-    // static void testHandleCallback_UsernameFailure() {
-    //     Org_Connection__c testRecord = [SELECT Id FROM Org_Connection__c LIMIT 1];
-    //     String state = testRecord.Id + '__lightning';
-        
-    //     Test.setMock(HttpCalloutMock.class, new UsernameFailureMock());
-    //     setupRestContext('valid_auth_code_123', state);
-        
-    //     Test.startTest();
-    //     CallbackAuthRest.handleCallback();
-    //     Test.stopTest();
-        
-    //     // Авторизация должна быть успешной, даже если username не получен
-    //     System.assertEquals(302, RestContext.response.statusCode);
-        
-    //     Org_Connection__c updatedRecord = [SELECT Status__c, UserName__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
-    //     System.assertEquals('Connected', updatedRecord.Status__c, 'Статус должен быть Connected');
-    //     // Username может быть null или не измениться (зависит от изначального значения)
-    // }
+        Org_Connection__c unchangedRecord = [SELECT Status__c, Refresh_Token__c FROM Org_Connection__c WHERE Id = :testRecord.Id];
+        System.assertEquals('Not linked', unchangedRecord.Status__c);
+        System.assertEquals(null, unchangedRecord.Refresh_Token__c);
+    }
 }

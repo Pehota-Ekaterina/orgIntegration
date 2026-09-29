@@ -7,20 +7,3 @@
     applyHtmlTag="false"
     applyBodyTag="false">
 </apex:page>
-            
-
-
-<!-- <apex:page controller="CallbackAuthController" 
-    action="{!callbackAuth}"
-    showHeader="true" 
-    sidebar="false">
-    
-    <apex:pageMessages />
-    
-    <h1>CallbackAuthController</h1>
-    
-    <apex:form >        
-        <apex:commandButton value="CallbackAuthController" 
-            action="{!callbackAuthOnButtonClick}" />
-    </apex:form>    
-</apex:page> -->
