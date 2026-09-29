@@ -145,20 +145,7 @@ public with sharing class OrgController {
             String instanceUrl = orgConnection.Instance_Url__c;
             String loginUrl = orgConnection.Login_Url__c;
 
-            HttpRequest req = new HttpRequest();
-            req.setEndpoint(loginUrl + '/services/oauth2/token');
-            req.setMethod('POST');
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            String body = 'grant_type=refresh_token' +
-                        '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                        '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                        '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
-
-            req.setBody(body);
-
-            Http http = new Http();
-            HttpResponse res = http.send(req);
+            HttpResponse res = sendRefreshTokenRequest(loginUrl, refreshToken);
 
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
 
@@ -180,6 +167,23 @@ public with sharing class OrgController {
         }
     }
 
+    private static HttpResponse sendRefreshTokenRequest(String loginUrl, String refreshToken) {
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(loginUrl + '/services/oauth2/token');
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        String body = 'grant_type=refresh_token' +
+                    '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                    '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                    '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+
+        req.setBody(body);
+
+        Http http = new Http();
+        return http.send(req);
+    }
+
     @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
         try {
@@ -198,16 +202,7 @@ public with sharing class OrgController {
                 throw new AuraHandledException('Org Connection not found.');
             }        
             Org_Connection__c orgConnection = orgConnectionsList[0];
-
-            String networkId = Network.getNetworkId();
-            // String context = String.isNotBlank(networkId) ? 'community' : 'lightning';
-            // String context = 'community';
-        
-
-            // String redirectUri = context == 'community' ? redirectUriCommunity : redirectUriLightning;
             String redirectUri = redirectUriCommunity;
-
-            // String state = orgConnectionId + '__' + context;
             String state = orgConnectionId;
             String baseUrl = orgConnection.Login_Url__c;
             
@@ -229,22 +224,33 @@ public with sharing class OrgController {
         List<Org_Connection__c> orgConnectionsToUpdate = new List<Org_Connection__c>();
 
         for (Org_Connection__c orgConnection : orgConnectionsList) {            
-            if (String.isBlank(orgConnection.Refresh_Token__c)) {
+            if (String.isBlank(orgConnection.Refresh_Token__c) && orgConnection.Status__c != 'Not linked') {
                 orgConnection.Status__c = 'Not linked';
+                orgConnectionsToUpdate.add(orgConnection);
             } else {
                 String loginUrl = orgConnection.Login_Url__c;
                 String refreshToken = orgConnection.Refresh_Token__c;
-                Boolean isValid = isRefreshTokenValid(loginUrl, refreshToken);
+                Boolean isValid; 
+                
+                try {
+                    isValid = isRefreshTokenValid(loginUrl, refreshToken);
+                } catch (Exception e) {
+                    isValid = false;
+                }
 
-                if (isValid) {
+                if (isValid && orgConnection.Status__c != 'Connected') {
                     orgConnection.Status__c = 'Connected';
-                } else {
+                    orgConnectionsToUpdate.add(orgConnection);
+                } 
+
+                if (!isValid && orgConnection.Status__c != 'Failed') {
                     orgConnection.Status__c = 'Failed';
+                    orgConnectionsToUpdate.add(orgConnection);
                 }
             }
         }
 
-        update orgConnectionsList;
+        update orgConnectionsToUpdate;
     }
 
     @TestVisible
@@ -254,21 +260,7 @@ public with sharing class OrgController {
         }
 
         try {
-            HttpRequest req = new HttpRequest();
-            req.setEndpoint(loginUrl + '/services/oauth2/token');
-            req.setMethod('POST');
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            // req.setTimeout(10000);
-
-            String body = 'grant_type=refresh_token' +
-                          '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                          '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                          '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
-            req.setBody(body);
-
-            Http http = new Http();
-            HttpResponse res = http.send(req);
-
+            HttpResponse res = sendRefreshTokenRequest(loginUrl, refreshToken);
             return res.getStatusCode() == 200;
         } catch (Exception e) {
             return false;

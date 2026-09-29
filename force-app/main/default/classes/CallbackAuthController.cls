@@ -1,4 +1,4 @@
-public without sharing class CallbackAuthController {
+public with sharing class CallbackAuthController {
     public String statusMessage { get; set; }
     public List<String> errors { get; set; }
     
@@ -8,8 +8,6 @@ public without sharing class CallbackAuthController {
 
     public PageReference callbackAuth() {
         errors = new List<String>();
-        
-        System.debug('callbackAuth START!');
 
         String code = ApexPages.currentPage().getParameters().get('code');
         String recordId = ApexPages.currentPage().getParameters().get('state');
@@ -36,20 +34,14 @@ public without sharing class CallbackAuthController {
 
             if (orgConnectionsList.isEmpty()) {
                 errors.add('Org_Connection__c record not found for ID: ' + recordId);
-                System.debug('Org_Connection__c record not found for ID: ' + recordId);
                 return null;
             } else {
-                System.debug('Org_Connection__c record found: ' + orgConnection);
                 orgConnection = orgConnectionsList[0];
             }
         } catch (Exception e) {
             errors.add('Record not found: ' + e.getMessage());
-            System.debug('catch error orgConnection');
-            System.debug('catch message:' + e.getMessage());
             return null;
         }
-
-        System.debug('orgConnection:' + orgConnection);
         
         String orgUrl = orgConnection.Login_Url__c;
 
@@ -76,10 +68,7 @@ public without sharing class CallbackAuthController {
                 return buildErrorRedirect(recordId, 'Authorization failed: status code');
             }
 
-            System.debug('res.getStatusCode():' + res.getStatusCode());
-
             String accessToken = (String) jsonResp.get('access_token');
-            // String idToken = (String) jsonResp.get('id_token');
             String instanceUrl = (String) jsonResp.get('instance_url');
             
             String username = getUsernameViaUserInfo(accessToken, orgUrl);
@@ -100,14 +89,10 @@ public without sharing class CallbackAuthController {
             orgConnection.Instance_Url__c = instanceUrl;
             orgConnection.Status__c = 'Connected';
 
-            System.debug('before update orgConnection');
             update orgConnection;  
-            System.debug('after update orgConnection');
 
-            System.debug('Org successfully linked! ID: ' + orgConnection.Id);
             return buildSuccessRedirect(recordId);
         } catch (Exception e) {
-            System.debug('catch buildErrorRedirect call');
             return buildErrorRedirect(recordId, 'Authorization failed');
         }
     }
@@ -116,6 +101,9 @@ public without sharing class CallbackAuthController {
         String baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
        
         PageReference pageRef = new PageReference(baseUrl + recordId);
+        pageRef.getParameters().put('c__showToast', 'true');
+        pageRef.getParameters().put('c__toast', 'success');
+        pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
         pageRef.setRedirect(true);
         
         return pageRef;
@@ -132,6 +120,9 @@ public without sharing class CallbackAuthController {
         }
         
         PageReference pageRef = new PageReference(baseUrl + recordIdPath);
+        pageRef.getParameters().put('c__showToast', 'true');
+        pageRef.getParameters().put('c__toast', 'error');
+        pageRef.getParameters().put('c__message', EncodingUtil.urlEncode(errorMessage, 'UTF-8'));
         pageRef.setRedirect(true);
         
         return pageRef;
@@ -162,10 +153,6 @@ public without sharing class CallbackAuthController {
     }
 
     private static Boolean isRefreshTokenValid(String url, String refreshToken) {    
-        System.debug('isRefreshTokenValid start!');
-        System.debug('clientId: '+ clientId);
-        System.debug('clientSecret: '+ clientSecret);
-
         if (String.isBlank(url) || String.isBlank(refreshToken)) {
             return false;
         }
@@ -175,7 +162,6 @@ public without sharing class CallbackAuthController {
             req.setEndpoint(url + '/services/oauth2/token');
             req.setMethod('POST');
             req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            // req.setTimeout(10000);
 
             String body = 'grant_type=refresh_token' +
                           '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
@@ -186,12 +172,8 @@ public without sharing class CallbackAuthController {
             Http http = new Http();
             HttpResponse res = http.send(req);
 
-            
-            System.debug('res.getStatusCode(): '+ res.getStatusCode());
-
             return res.getStatusCode() == 200;
         } catch (Exception e) {
-            System.debug('Token validation error: ' + e.getMessage());
             return false;
         }
     }

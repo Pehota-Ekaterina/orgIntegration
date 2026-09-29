@@ -5,8 +5,6 @@ public with sharing class ConfigManager {
 
         try {
             OAuth_Config__mdt config = OAuth_Config__mdt.getInstance('Main_Config');
-
-            System.debug('getActiveConfig config: ' + config);
             
             if (config != null && config.Is_Active__c) {
                 result = config;
@@ -20,8 +18,6 @@ public with sharing class ConfigManager {
 
     public static String getClientId() {
         OAuth_Config__mdt config = getActiveConfig();
-
-        System.debug('getClientId config: ' + config);
 
         return config != null ? config.Client_Id__c : null;
     }

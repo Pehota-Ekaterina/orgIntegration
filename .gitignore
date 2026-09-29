@@ -46,3 +46,9 @@ $RECYCLE.BIN/
 **/__pycache__/
 **/.venv/
 **/venv/
+
+
+
+force-app/main/default/lwc/orgConnectionCard/
+force-app/main/default/lwc/orgConnectionModal/
+force-app/main/default/lwc/orgConnectionPage/

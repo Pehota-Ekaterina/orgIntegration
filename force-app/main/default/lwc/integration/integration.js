@@ -8,7 +8,6 @@ import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgC
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import connectionStatusCheckController from '@salesforce/apex/OrgController.connectionStatusCheck';
 import hasPermissionApex from '@salesforce/apex/OrgController.checkPermissionAdmin';
-// import hasPermissionLWC from '@salesforce/customPermission/Manage_org_connection';
 
 import { refreshApex } from '@salesforce/apex'; 
 import { NavigationMixin } from 'lightning/navigation';
@@ -226,7 +225,6 @@ export default class Integration extends NavigationMixin(LightningElement) {
         if (!this.orgConnection.orgName || this.orgConnection.orgName.trim() === '') {
             orgNameInput.setCustomValidity('Org Name is required');
             orgNameInput.reportValidity();
-            // isValid = false;
             this.isValid = false;
         }
 
