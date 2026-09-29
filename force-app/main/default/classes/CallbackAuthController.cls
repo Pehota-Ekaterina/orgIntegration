@@ -1,13 +1,10 @@
 public without sharing class CallbackAuthController {
     public String statusMessage { get; set; }
     public List<String> errors { get; set; }
-
-    public String accessToken { get; set; }
-    public String idToken { get; set; }
     
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    private static final String redirectUri = 'https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth';
+    private static final String redirectUri = ConfigManager.getRedirectUrl(); 
     
     public PageReference callbackAuth() {
         errors = new List<String>();
@@ -60,9 +57,11 @@ public without sharing class CallbackAuthController {
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
             
             if (res.getStatusCode() != 200) {
-                errors.add('Error from token endpoint: ' + res.getBody());
-                errors.add('status ' + res.getStatusCode());
-                return null;
+                PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+                pageRef.getParameters().put('c__toast', 'error');
+                pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
+                pageRef.setRedirect(true);
+                return pageRef;
             }
 
             String accessToken = (String) jsonResp.get('access_token');
@@ -76,19 +75,34 @@ public without sharing class CallbackAuthController {
             } else {
                 orgConnection.UserName__c = username;
             }
+
+            String refreshToken = (String) jsonResp.get('refresh_token');
+
+            if(!isRefreshTokenValid(instanceUrl, refreshToken)) {
+                PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+                pageRef.getParameters().put('c__toast', 'error');
+                pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
+                pageRef.setRedirect(true);
+                return pageRef;
+            }
             
-            orgConnection.Refresh_Token__c = (String) jsonResp.get('refresh_token');
-            orgConnection.Instance_Url__c = (String) jsonResp.get('instance_url');
+            orgConnection.Refresh_Token__c = refreshToken;
+            orgConnection.Instance_Url__c = instanceUrl;
             orgConnection.Status__c = 'Connected';
-            update orgConnection;
-            
-            statusMessage = 'Authorization successful!';
-            
+            update orgConnection;  
+
+            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+            pageRef.getParameters().put('c__toast', 'success');
+            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
+            pageRef.setRedirect(true);
+            return pageRef;
         } catch (Exception e) {
-            errors.add('Error on token save: ' + e.getMessage());
+            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
+            pageRef.getParameters().put('c__toast', 'error');
+            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
+            pageRef.setRedirect(true);
+            return pageRef;
         }
-        
-        return null;
     }
 
     private String getUsernameViaUserInfo(String accessToken, String orgUrl) {
@@ -112,6 +126,34 @@ public without sharing class CallbackAuthController {
         } catch (Exception e) {
             errors.add('Error username: ' + e.getMessage());
             return null;
+        }
+    }
+
+    private static Boolean isRefreshTokenValid(String url, String refreshToken) {    
+        if (String.isBlank(url) || String.isBlank(refreshToken)) {
+            return false;
+        }
+
+        try {
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(url + '/services/oauth2/token');
+            req.setMethod('POST');
+            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+            // req.setTimeout(10000);
+
+            String body = 'grant_type=refresh_token' +
+                          '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                          '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                          '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+            req.setBody(body);
+
+            Http http = new Http();
+            HttpResponse res = http.send(req);
+
+            return res.getStatusCode() == 200;
+        } catch (Exception e) {
+            System.debug('Token validation error: ' + e.getMessage());
+            return false;
         }
     }
 }

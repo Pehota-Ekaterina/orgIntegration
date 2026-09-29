@@ -1,0 +1,212 @@
+/* Основная карточка */
+/* .card {
+    width: 100%;
+    max-width: 400px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s;
+} */
+
+.card {
+    max-width: 400px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Верхняя часть: Имя и Статус */
+.card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    margin: 0;
+    cursor: pointer;
+}
+
+.card-name:hover {
+    color: #1a56db;
+    text-decoration: underline;
+}
+
+/* Бейдж статуса */
+.card-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid #a7a7a7;
+}
+
+.status-gray {
+    color: #666;
+    background: #eee;
+    border-color: #ccc;
+}
+
+.status-green {
+    color: #0f5132;
+    background: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.status-red {
+    color: #842029;
+    background: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+/* Тип организации */
+/* .card-type {
+    font-size: 11px;
+    color: #666;
+    background: #eee;
+    padding: 1px 7px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+    width: fit-content;
+} */
+
+.card-type {
+    font-size: 11px;
+    color: #666;
+    background: #eee;
+    padding: 1px 7px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+/* Информация внутри карточки */
+.card-info {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex: 1;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    word-break: break-all;
+}
+
+/* .error-msg {
+    font-size: 11px;
+    color: #991b1b;
+    background: #fef2f2;
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+    margin-bottom: 0;
+} */
+
+.error-msg {
+    font-size: 11px;
+    color: #991b1b;
+    margin-bottom: 10px;
+}
+
+/* Кнопки действий в карточке */
+.card-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    flex-wrap: wrap;
+}
+
+/* Базовая кнопка */
+.btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    color: #444;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.btn-primary {
+    background: #e8f0fe;
+    color: #1a56db;
+    border-color: transparent;
+}
+
+.btn-primary:hover {
+    background: #d0e2fd;
+}
+
+.btn-revoke {
+    background: #fee8e8;
+    color: #ff5252;
+    border-color: transparent;
+}
+
+.btn-revoke:hover {
+    background: #fdd2d2;
+}
+
+/* Сброс стилей для кнопок внутри этого компонента (Scoped) */
+button {
+    appearance: auto;
+    text-rendering: auto;
+    color: buttontext;
+    letter-spacing: normal;
+    word-spacing: normal;
+    line-height: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-flex;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    background-color: buttonface;
+    margin: 0;
+    padding-block: 1px;
+    padding-inline: 6px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: buttonborder;
+}

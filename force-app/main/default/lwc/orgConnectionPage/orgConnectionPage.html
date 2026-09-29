@@ -1,0 +1,72 @@
+<template>
+    <lightning-card> 
+        <!-- Шапка с заголовком и кнопкой создания -->
+        <div class="slds-grid slds-m-vertical_small slds-m-horizontal_large">
+            <div class="slds-col">
+                <div class="slds-grid slds-grid_vertical-align-center">
+                    <div class="slds-text-heading_medium slds-text-color_default">Org connections</div>
+                    <template if:true={orgConnectionList.length}>
+                        <div class="slds-m-left_medium slds-m-vertical_x-small slds-text-heading_small">
+                            {orgConnectionList.length} orgs
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
+            <div class="slds-col slds-text-align_right">
+                <button class="button-new-org" onclick={handleOpenModal}>+ New org connection</button>
+            </div>
+        </div>
+
+        <!-- Поиск -->
+        <div class="slds-m-horizontal_large">
+            <input type="search" placeholder="Search orgs..." class="search" value={searchQuery} oninput={handleSearchChange} />
+        </div>
+
+        <!-- Состояние загрузки -->
+        <template if:true={isLoading}>
+            <div class="loading">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- Состояние пустого списка -->
+        <template if:false={isLoading}>
+            <template if:false={filteredOrgList.length}>
+                <div class="empty">
+                    <p>No org connections yet</p>
+                    <p class="second-row">Click "+ New org connection" to link your first org</p>
+                </div>
+            </template>
+        </template>
+
+        <!-- Сетка карточек -->
+        <template if:false={isLoading}>
+            <template if:true={filteredOrgList.length}>
+                <div class="container">
+                    <template for:each={filteredOrgList} for:item="org">
+                        <div key={org.Id} class="slds-col">
+                            <!-- Делегируем рендеринг карточки дочернему компоненту -->
+                            <c-org-connection-card 
+                                record={org}
+                                onorgdelete={handleDelete}
+                                onorgdisconnect={handleDisconnect}
+                                onorgopen={handleOpen}
+                                onorgauthorize={handleAuthorize}
+                                onorgnavigate={handleNavigate}>
+                            </c-org-connection-card>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+
+    <!-- Модальное окно (дочерний компонент) -->
+    <c-org-connection-modal 
+        is-open={showModal} 
+        onclose={handleCloseModal} 
+        onsave={handleSaveOrgConnection}
+        onshowtoast={handleShowToast}>
+    </c-org-connection-modal>
+</template>

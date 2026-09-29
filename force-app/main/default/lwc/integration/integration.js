@@ -5,12 +5,12 @@ import saveOrgConnectionController from '@salesforce/apex/OrgController.saveOrgC
 import deleteOrgConnectionController from '@salesforce/apex/OrgController.deleteOrgConnection';
 import disconnectOrgConnectionController from '@salesforce/apex/OrgController.disconnectOrgConnection';
 import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
-import revokeRefreshTokenController from '@salesforce/apex/OrgController.revokeRefreshToken';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import connectionStatusCheckController from '@salesforce/apex/OrgController.connectionStatusCheck';
 import { refreshApex } from '@salesforce/apex'; 
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class Integration extends LightningElement {
+export default class Integration extends NavigationMixin(LightningElement) {
     @track orgConnectionList = [];
     filteredOrgList = [];
     error;
@@ -44,6 +44,8 @@ export default class Integration extends LightningElement {
         } else if (result.error) {
             this.error = result.error;
             this.orgConnectionList = [];
+            this.isLoading = false;
+            this.showToast('Error', 'Error loading data ', 'error');
         }
     }
 
@@ -114,13 +116,18 @@ export default class Integration extends LightningElement {
         this.dispatchEvent(event);
     }
 
+    _handleTabFocus = async () => {
+        if (this.wiredOrgConnectionsResult) {
+            await refreshApex(this.wiredOrgConnectionsResult);
+        }
+    };
+
     connectedCallback() {
-        // this.connectionStatusCheck();
-        window.addEventListener('focus', () => this.handleTabFocus());
+        window.addEventListener('focus', this._handleTabFocus);
     }
     
     disconnectedCallback() {
-        window.removeEventListener('focus', () => this.handleTabFocus());
+        window.removeEventListener('focus', this._handleTabFocus);
     }
 
     async connectionStatusCheck() {
@@ -131,10 +138,6 @@ export default class Integration extends LightningElement {
         }
 
         this.isLoading = false;
-    }
-
-    async handleTabFocus() {
-        await refreshApex(this.wiredOrgConnectionsResult);
     }
 
     handleSearchChange(event) {
@@ -150,31 +153,29 @@ export default class Integration extends LightningElement {
     }
 
     handleOrgTypeChange(event) {
-        const inputFields = [
-            this.template.querySelector('[data-id="type"]'),
-            this.template.querySelector('[data-id="loginUrl"]')
-        ];
-        
-        inputFields.forEach(input => {
-            input.setCustomValidity('');
-            input.reportValidity();
-        });
+        this.clearValidation();
 
         this.orgConnection.type = event.target.value;
     }
 
     handleOrgLoginUrlChange(event) {
+        this.clearValidation();
+        
+        this.orgConnection.loginUrl = event.target.value;
+    }
+
+    clearValidation() {
         const inputFields = [
             this.template.querySelector('[data-id="type"]'),
             this.template.querySelector('[data-id="loginUrl"]')
         ];
         
         inputFields.forEach(input => {
-            input.setCustomValidity('');
-            input.reportValidity();
+            if(input) {
+                input.setCustomValidity('');
+                input.reportValidity();
+            }
         });
-
-        this.orgConnection.loginUrl = event.target.value;
     }
 
     handleModal() {
@@ -206,6 +207,7 @@ export default class Integration extends LightningElement {
         if (!this.orgConnection.orgName || this.orgConnection.orgName.trim() === '') {
             orgNameInput.setCustomValidity('Org Name is required');
             orgNameInput.reportValidity();
+            // isValid = false;
             this.isValid = false;
         }
 
@@ -248,16 +250,39 @@ export default class Integration extends LightningElement {
         };
 
         try {
-            let orgconnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
+            let orgConnectionId = await saveOrgConnectionController({orgData: orgConnectionData});
+            this.handleCloseModal();            
 
-            const authUrl = await getAuthUrlController({ orgConnectionId: orgconnectionId });
-            window.open(authUrl, '_blankk');
-
-            this.showToast('Success', 'Org Connection saved successfully', 'success');
-            this.handleCloseModal();
-            await refreshApex(this.wiredOrgConnectionsResult);
+            this.authorizeOrgConnection(orgConnectionId);
         } catch (error) {
-            this.showToast('Error', 'Error saving org connection.', 'error');
+            this.showToast('Error', 'Error adding org connection.', 'error');
+        }
+    }
+
+    handleAuthorizeOrgConnection(event) {
+        const recordId = event.target.dataset.orgId;
+
+        if (!recordId) return;
+
+        this.authorizeOrgConnection(recordId);
+    }
+
+    async authorizeOrgConnection(recordId) {
+        try {
+            const authUrl = await getAuthUrlController({ orgConnectionId: recordId });
+            window.open(authUrl, '_blank');
+        } catch (error) {
+            let errorMsg = 'Error authorizing org connection.';
+            
+            if (error.body?.message) {
+                errorMsg = error.body.message;
+            } else if (error.message) {
+                errorMsg = error.message;
+            } else if (Array.isArray(error) && error[0]?.message) {
+                errorMsg = error[0].message;
+            }
+            
+            this.showToast('Error', errorMsg, 'error');
         }
     }
 
@@ -343,7 +368,6 @@ export default class Integration extends LightningElement {
     }
 
     handleOpenOrgConnection(event) {
-        // console.log('handleOpenOrgConnection called');
         const recordId = event.target.dataset.orgId;
 
         if (!recordId) return;
@@ -353,14 +377,11 @@ export default class Integration extends LightningElement {
 
     async openOrgConnection(recordId) {
         try {
-            // onsole.log('Opening org connection for recordId:', recordId);
             const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
-            // console.log('Org URL:', orgUrl);
 
             if (orgUrl) {
                 window.open(orgUrl, '_blank');                
             } else {
-                // The connection is broken. Please reconnect the org.
                 this.showToast('Error', 'The connection is broken. Please reconnect the org.', 'error');
                 await refreshApex(this.wiredOrgConnectionsResult);                
             }            
@@ -379,31 +400,18 @@ export default class Integration extends LightningElement {
         }
     }
 
-    handleRevokeRefreshToken(event) {
-        // console.log('handleOpenOrgConnection called');
+    handleOpenDetailPage(event) {
         const recordId = event.target.dataset.orgId;
 
-        if (!recordId) return;
+        if(!recordId) return;
 
-        this.revokeRefreshToken(recordId);
-    }
-
-    async revokeRefreshToken(recordId) {
-        try {
-            await revokeRefreshTokenController({ orgConnectionId: recordId });
-            this.showToast('Success', 'Refresh token information.', 'success');
-        } catch (error) {
-            let errorMsg = 'Error revoking refresh token.';
-            
-            if (error.body?.message) {
-                errorMsg = error.body.message;
-            } else if (error.message) {
-                errorMsg = error.message;
-            } else if (Array.isArray(error) && error[0]?.message) {
-                errorMsg = error[0].message;
-            }
-        
-            this.showToast('Error', errorMsg, 'error');
-        }
+        this[NavigationMixin.Navigate]({
+            type: "standard__recordPage",
+            attributes: {
+                recordId: recordId,
+                objectApiName: "Org_Connection__c",
+                actionName: "view",
+            },
+        });      
     }
 }
