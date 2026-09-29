@@ -15,7 +15,7 @@
         <value xsi:type="xsd:boolean">true</value>
     </values>
     <values>
-        <field>Redirect_Url__c</field>
-        <value xsi:type="xsd:string">https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth</value>
+        <field>Redirect_Url_community__c</field>
+        <value xsi:type="xsd:string">https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/apex/CallbackAuth</value>
     </values>
 </CustomMetadata>

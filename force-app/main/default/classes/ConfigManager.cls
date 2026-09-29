@@ -9,7 +9,6 @@ public with sharing class ConfigManager {
             if (config != null && config.Is_Active__c) {
                 result = config;
             }
-            return null;
         } catch (Exception e) {
             System.debug('ERROR: Failed to get OAuth config via getInstance(): ' + e.getMessage());
         }
@@ -17,30 +16,21 @@ public with sharing class ConfigManager {
         return result;
     }
 
-    /**
-     * Получает Client ID из метаданных
-     */
     public static String getClientId() {
         OAuth_Config__mdt config = getActiveConfig();
 
         return config != null ? config.Client_Id__c : null;
     }
     
-    /**
-     * Получает Client Secret из метаданных
-     */
     public static String getClientSecret() {
         OAuth_Config__mdt config = getActiveConfig();
 
         return config != null ? config.Client_Secret__c : null;
     }
 
-    /**
-     * Получает Redirect Url из метаданных
-     */
-    public static String getRedirectUrl() {
+    public static String getRedirectUrlCommunity() {
         OAuth_Config__mdt config = getActiveConfig();
 
-        return config != null ? config.Redirect_Url__c : null;
+        return config != null ? config.Redirect_Url_community__c : null;
     }
 }
