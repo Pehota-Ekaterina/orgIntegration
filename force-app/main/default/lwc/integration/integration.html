@@ -21,114 +21,124 @@
             <input type="search" placeholder="Search orgs..." class="search" value={searchQuery} oninput={handleSearchChange} />
         </div>
 
-        <template if:false={orgConnectionList.length}>
-            <div class="empty">
-                <p>No org connections yet</p>
-                <p class="second-row">Click "New org connection" to link your first org</p>
+        <template if:true={isLoading}>
+            <div class="loading">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
             </div>
         </template>
 
-        <template if:true={orgConnectionList.length}>
-            <div class="container">
-                <template for:each={processedList} for:item="orgConnection">
-                    <div key={orgConnection.Id} class="card">
+        <template if:false={isLoading}>
+            <template if:false={orgConnectionList.length}>
+                <div class="empty">
+                    <p>No org connections yet</p>
+                    <p class="second-row">Click "New org connection" to link your first org</p>
+                </div>
+            </template>
+        </template>
 
-                        <div class="card-top">
-                            <h3 class="card-name">{orgConnection.Org_Name__c}</h3>
-                            <span class={orgConnection.statusSpanClass}>
-                                <lightning-icon icon-name={orgConnection.statusIcon} size="x-small"></lightning-icon>
-                                {orgConnection.Status__c}
-                            </span>
-                        </div>
+        <template if:false={isLoading}>
+            <template if:true={orgConnectionList.length}>
+                <div class="container">
+                    <template for:each={processedList} for:item="orgConnection">
+                        <div key={orgConnection.Id} class="card">
 
-                        <div class="card-type">{orgConnection.Type__c}</div>
-
-                        <div class="card-info">
-                            <div class="info-row">
-                                <lightning-icon icon-name="utility:http" size="x-small"></lightning-icon>
-                                <span>{orgConnection.Login_Url__c}</span>
+                            <div class="card-top">
+                                <h3 class="card-name">{orgConnection.Org_Name__c}</h3>
+                                <span class={orgConnection.statusSpanClass}>
+                                    <lightning-icon icon-name={orgConnection.statusIcon} size="x-small"></lightning-icon>
+                                    {orgConnection.Status__c}
+                                </span>
                             </div>
-                            <template if:false={orgConnection.isStatusNotLinked}>
+
+                            <div class="card-type">{orgConnection.Type__c}</div>
+
+                            <div class="card-info">
                                 <div class="info-row">
-                                    <lightning-icon icon-name="utility:profile_alt" size="x-small"></lightning-icon>
-                                    <span>{orgConnection.UserName__c}</span>
+                                    <lightning-icon icon-name="utility:http" size="x-small"></lightning-icon>
+                                    <span>{orgConnection.Login_Url__c}</span>
                                 </div>
-                            </template>
+                                <template if:false={orgConnection.isStatusNotLinked}>
+                                    <div class="info-row">
+                                        <lightning-icon icon-name="utility:profile_alt" size="x-small"></lightning-icon>
+                                        <span>{orgConnection.UserName__c}</span>
+                                    </div>
+                                </template>
 
-                            <template if:true={orgConnection.isStatusFailed}>
-                                <p class="error-msg">Token invalid — org may be expired</p>
-                            </template>
+                                <template if:true={orgConnection.isStatusFailed}>
+                                    <p class="error-msg">Token invalid — org may be expired</p>
+                                </template>
 
-                            <template if:true={orgConnection.isStatusConnected}>
-                                <button 
-                                    class="btn btn-revoke"
-                                    onclick={handleRevokeRefreshToken} 
-                                    data-org-id={orgConnection.Id}>
-                                    Revoke token inf
-                                </button>
-                            </template>
-                        </div>
-                        
-                        <div class="card-buttons">
-                            <template if:true={orgConnection.isStatusConnected}>
-                                <button 
-                                    class="btn" 
-                                    onclick={handleDeleteOrgConnection} 
-                                    data-org-id={orgConnection.Id} 
-                                    data-org-name={orgConnection.Org_Name__c}>
-                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                    Delete
-                                </button>
-                                <button 
-                                    class="btn"
-                                    onclick={handleDisconnectOrgConnection} 
-                                    data-org-id={orgConnection.Id} 
-                                    data-org-name={orgConnection.Org_Name__c}>
-                                    <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
-                                    Disconnect
-                                </button>
-                                <button 
-                                    class="btn btn-primary"
-                                    onclick={handleOpenOrgConnection} 
-                                    data-org-id={orgConnection.Id}>
-                                    <lightning-icon icon-name="utility:forward_up" size="xx-small"></lightning-icon>
-                                    Open org
-                                </button>
-                            </template>
+                                <template if:true={orgConnection.isStatusConnected}>
+                                    <button 
+                                        class="btn btn-revoke"
+                                        onclick={handleRevokeRefreshToken} 
+                                        data-org-id={orgConnection.Id}>
+                                        Revoke token inf
+                                    </button>
+                                </template>
+                            </div>
+                            
+                            <div class="card-buttons">
+                                <template if:true={orgConnection.isStatusConnected}>
+                                    <button 
+                                        class="btn" 
+                                        onclick={handleDeleteOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
+                                        <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                        Delete
+                                    </button>
+                                    <button 
+                                        class="btn"
+                                        onclick={handleDisconnectOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
+                                        <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
+                                        Disconnect
+                                    </button>
+                                    <button 
+                                        class="btn btn-primary"
+                                        onclick={handleOpenOrgConnection} 
+                                        data-org-id={orgConnection.Id}>
+                                        <lightning-icon icon-name="utility:forward_up" size="xx-small"></lightning-icon>
+                                        Open org
+                                    </button>
+                                </template>
 
-                            <template if:true={orgConnection.isStatusFailed}>
-                                <button 
-                                    class="btn" 
-                                    onclick={handleDeleteOrgConnection} 
-                                    data-org-id={orgConnection.Id} 
-                                    data-org-name={orgConnection.Org_Name__c}>
-                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                    Delete
-                                </button>
-                                <button class="btn">
-                                    <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
-                                    Re-authorize
-                                </button>
-                            </template>
+                                <template if:true={orgConnection.isStatusFailed}>
+                                    <button 
+                                        class="btn" 
+                                        onclick={handleDeleteOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
+                                        <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                        Delete
+                                    </button>
+                                    <button class="btn">
+                                        <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
+                                        Re-authorize
+                                    </button>
+                                </template>
 
-                            <template if:true={orgConnection.isStatusNotLinked}>
-                                <button 
-                                    class="btn" 
-                                    onclick={handleDeleteOrgConnection} 
-                                    data-org-id={orgConnection.Id} 
-                                    data-org-name={orgConnection.Org_Name__c}>
-                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                    Delete
-                                </button>
-                                <button class="btn btn-primary">
-                                    <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
-                                    Authorize
-                                </button>
-                            </template>
-                        </div>
-                    </div> 
-                </template>
-            </div>
+                                <template if:true={orgConnection.isStatusNotLinked}>
+                                    <button 
+                                        class="btn" 
+                                        onclick={handleDeleteOrgConnection} 
+                                        data-org-id={orgConnection.Id} 
+                                        data-org-name={orgConnection.Org_Name__c}>
+                                        <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
+                                        Delete
+                                    </button>
+                                    <button class="btn btn-primary">
+                                        <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
+                                        Authorize
+                                    </button>
+                                </template>
+                            </div>
+                        </div> 
+                    </template>
+                </div>
+            </template>
         </template>
     </lightning-card>
 

@@ -7,6 +7,7 @@ import disconnectOrgConnectionController from '@salesforce/apex/OrgController.di
 import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
 import revokeRefreshTokenController from '@salesforce/apex/OrgController.revokeRefreshToken';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
+import connectionStatusCheckController from '@salesforce/apex/OrgController.connectionStatusCheck';
 import { refreshApex } from '@salesforce/apex'; 
 
 export default class Integration extends LightningElement {
@@ -14,6 +15,9 @@ export default class Integration extends LightningElement {
     filteredOrgList = [];
     error;
     wiredOrgConnectionsResult;
+
+    isLoading = true;
+    hasVerifiedConnections = false;
 
     @track searchQuery = '';
 
@@ -32,6 +36,11 @@ export default class Integration extends LightningElement {
         if (result.data) {
             this.orgConnectionList = result.data;
             this.error = undefined;
+
+            if (!this.hasVerifiedConnections) {
+                this.hasVerifiedConnections = true;
+                this.connectionStatusCheck();
+            }
         } else if (result.error) {
             this.error = result.error;
             this.orgConnectionList = [];
@@ -106,11 +115,22 @@ export default class Integration extends LightningElement {
     }
 
     connectedCallback() {
+        // this.connectionStatusCheck();
         window.addEventListener('focus', () => this.handleTabFocus());
     }
     
     disconnectedCallback() {
         window.removeEventListener('focus', () => this.handleTabFocus());
+    }
+
+    async connectionStatusCheck() {
+       await connectionStatusCheckController();
+
+       if (this.wiredOrgConnectionsResult) {
+            await refreshApex(this.wiredOrgConnectionsResult);
+        }
+
+        this.isLoading = false;
     }
 
     async handleTabFocus() {

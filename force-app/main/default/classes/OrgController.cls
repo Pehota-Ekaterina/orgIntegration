@@ -174,4 +174,54 @@ public with sharing class OrgController {
             '&scope=full%20refresh_token%20web' +
             '&state=' + EncodingUtil.urlEncode(state, 'UTF-8');
     }
+
+    @AuraEnabled
+    public static void connectionStatusCheck() {
+        List<Org_Connection__c> orgConnectionsList = [SELECT Id, Login_Url__c, Refresh_Token__c, Status__c FROM Org_Connection__c];
+        List<Org_Connection__c> orgConnectionsToUpdate = new List<Org_Connection__c>();
+
+        for (Org_Connection__c orgConnection : orgConnectionsList) {
+            if (String.isBlank(orgConnection.Refresh_Token__c)) {
+                orgConnection.Status__c = 'Not linked';
+                // orgConnectionsToUpdate.add(orgConnection);
+            } else {
+                String loginUrl = orgConnection.Login_Url__c;
+                String refreshToken = orgConnection.Refresh_Token__c;
+                Boolean isValid = isRefreshTokenValid(loginUrl, refreshToken);
+
+                if (isValid) {
+                    orgConnection.Status__c = 'Connected';
+                    // orgConnectionsToUpdate.add(orgConnection);
+                } else {
+                    orgConnection.Status__c = 'Failed';
+                    // orgConnectionsToUpdate.add(orgConnection);
+                }
+            }
+        }
+
+        update orgConnectionsList;
+
+        // if (!orgConnectionsToUpdate.isEmpty()) {
+        //     update orgConnectionsToUpdate;
+        // }
+    }
+
+    private static Boolean isRefreshTokenValid(String loginUrl, String refreshToken) {
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(loginUrl + '/services/oauth2/token');
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        String body = 'grant_type=refresh_token' +
+                      '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                      '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                      '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+
+        req.setBody(body);
+
+        Http http = new Http();
+        HttpResponse res = http.send(req);
+
+        return res.getStatusCode() == 200;
+    }
 }
