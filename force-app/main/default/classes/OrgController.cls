@@ -8,7 +8,8 @@ public with sharing class OrgController {
     public static List<Org_Connection__c> getOrgConnections() {
         return [
             SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c
-            FROM Org_Connection__c
+            FROM Org_Connection__c 
+            WITH USER_MODE
             LIMIT 100
         ];
     }
@@ -29,6 +30,7 @@ public with sharing class OrgController {
                 SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c, Instance_Url__c
                 FROM Org_Connection__c
                 WHERE Id = :orgConnectionId
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -56,7 +58,7 @@ public with sharing class OrgController {
         orgConnection.Org_Name__c = (String) orgData.get('Org_Name__c');
         orgConnection.Type__c = (String) orgData.get('Type__c');
         orgConnection.Login_Url__c = (String) orgData.get('Login_Url__c');
-        insert orgConnection;
+        insert as user orgConnection;
 
         return orgConnection.Id;
     }
@@ -73,14 +75,17 @@ public with sharing class OrgController {
             }
 
             List<Org_Connection__c> recordsToDelete = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId 
+                SELECT Id 
+                FROM Org_Connection__c
+                WHERE Id = :orgConnectionId 
+                WITH USER_MODE
             ];
 
             if (recordsToDelete.isEmpty()) {
                 throw new AuraHandledException('Org Connection not found.');
             }        
 
-            delete recordsToDelete;
+            delete as user recordsToDelete;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -99,8 +104,9 @@ public with sharing class OrgController {
 
             List<Org_Connection__c> recordsToDisconnectList = [
                 SELECT Id, Refresh_Token__c, Instance_Url__c, UserName__c, Status__c
-                FROM Org_Connection__c 
+                FROM Org_Connection__c
                 WHERE Id = :orgConnectionId 
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -115,7 +121,7 @@ public with sharing class OrgController {
             recordToDisconnect.UserName__c = null;
 
             recordToDisconnect.Status__c = 'Not linked';
-            update recordToDisconnect;  
+            update as system recordToDisconnect;  
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -132,6 +138,7 @@ public with sharing class OrgController {
                 SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c 
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
+                WITH SYSTEM_MODE
                 LIMIT 1
             ];
 
@@ -151,7 +158,8 @@ public with sharing class OrgController {
 
             if (res.getStatusCode() != 200 && checkPermissionAdmin()) {
                 orgConnection.Status__c = 'Failed';
-                update orgConnection;
+                // update as user orgConnection;
+                update as system orgConnection;
             }
             if (res.getStatusCode() != 200) {
                 throw new AuraHandledException('Failed to refresh access token. Status code: ' + res.getStatusCode());
@@ -186,6 +194,10 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
@@ -193,8 +205,9 @@ public with sharing class OrgController {
 
             List<Org_Connection__c> orgConnectionsList = [
                 SELECT Id, Login_Url__c 
-                FROM Org_Connection__c 
+                FROM Org_Connection__c
                 WHERE Id = :orgConnectionId 
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -220,14 +233,22 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void connectionStatusCheck() {
-        List<Org_Connection__c> orgConnectionsList = [SELECT Id, Login_Url__c, Refresh_Token__c, Status__c FROM Org_Connection__c];
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
+        List<Org_Connection__c> orgConnectionsList = [
+            SELECT Id, Login_Url__c, Refresh_Token__c, Status__c 
+            FROM Org_Connection__c
+            WITH SYSTEM_MODE
+        ];
         List<Org_Connection__c> orgConnectionsToUpdate = new List<Org_Connection__c>();
 
         for (Org_Connection__c orgConnection : orgConnectionsList) {            
             if (String.isBlank(orgConnection.Refresh_Token__c) && orgConnection.Status__c != 'Not linked') {
                 orgConnection.Status__c = 'Not linked';
                 orgConnectionsToUpdate.add(orgConnection);
-            } else {
+            } else  if (!String.isBlank(orgConnection.Refresh_Token__c)) {
                 String loginUrl = orgConnection.Login_Url__c;
                 String refreshToken = orgConnection.Refresh_Token__c;
                 Boolean isValid; 
@@ -250,7 +271,7 @@ public with sharing class OrgController {
             }
         }
 
-        update orgConnectionsToUpdate;
+        update as system orgConnectionsToUpdate;
     }
 
     @TestVisible

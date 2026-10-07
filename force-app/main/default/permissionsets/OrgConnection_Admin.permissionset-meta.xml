@@ -37,11 +37,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Org_Connection__c.Refresh_Token__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>Org_Connection__c.Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -74,9 +69,5 @@
     <userPermissions>
         <enabled>true</enabled>
         <name>RunReports</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>ViewEncryptedData</name>
     </userPermissions>
 </PermissionSet>

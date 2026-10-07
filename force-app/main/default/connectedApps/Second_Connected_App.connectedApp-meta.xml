@@ -3,9 +3,6 @@
     <contactEmail>pekhotaekaterina200@gmail.com</contactEmail>
     <label>Second Connected App</label>
     <oauthConfig>
-        <callbackUrl>https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth
-https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/apex/CallbackAuth</callbackUrl>
-        <consumerKey>3MVG9GCMQoQ6rpzRMJUK898LWHKpirAgi_zBA9mUNgRLS8MX7g85l3t9F2_M6kJORu1THSPawTNqLP1K.x1K3</consumerKey>
         <isAdminApproved>false</isAdminApproved>
         <isClientCredentialEnabled>false</isClientCredentialEnabled>
         <isCodeCredentialEnabled>false</isCodeCredentialEnabled>

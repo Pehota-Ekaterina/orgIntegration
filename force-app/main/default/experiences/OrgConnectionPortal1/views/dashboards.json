@@ -1,0 +1,71 @@
+{
+  "appPageId" : "850530b9-b2b2-4b57-9b56-85855ee85856",
+  "componentName" : "siteforce:dynamicLayout",
+  "dataProviders" : [ ],
+  "id" : "0127acd6-5b81-4242-a7ee-e6f35823b23c",
+  "label" : "Dashboards",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "background" : "background: rgba(0,0,0,0)",
+        "backgroundOverlay" : "rgba(0,0,0,0.5)",
+        "contentAreaWidth" : 100,
+        "sectionConfig" : {
+          "UUID" : "ad61ec7f-a98c-441f-8d18-a8a16a4598d4",
+          "columns" : [ {
+            "UUID" : "3b4bde9f-a453-491b-8061-64ddd7223be7",
+            "columnKey" : "1",
+            "columnName" : "Column 1",
+            "columnWidth" : "12",
+            "seedComponents" : [ ]
+          } ]
+        },
+        "sectionHeight" : 300
+      },
+      "componentName" : "forceCommunity:section",
+      "id" : "ad61ec7f-a98c-441f-8d18-a8a16a4598d4",
+      "regions" : [ {
+        "components" : [ {
+          "componentAttributes" : {
+            "height" : "800",
+            "recordId" : "VpCMXLcuRYnkslSqTGsFjsPeHxjNZs"
+          },
+          "componentName" : "forceCommunity:dashboard",
+          "id" : "485f2ceb-5ab8-4e3e-88a5-7267835148bb",
+          "renderPriority" : "NEUTRAL",
+          "renditionMap" : { },
+          "type" : "component"
+        } ],
+        "id" : "3b4bde9f-a453-491b-8061-64ddd7223be7",
+        "regionLabel" : "Column 1",
+        "regionName" : "1",
+        "renditionMap" : { },
+        "type" : "region"
+      } ],
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "91db4762-cd80-41a3-9f43-b1b1bd6354df",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "customHeadTags" : "",
+        "description" : "",
+        "title" : "Dashboards"
+      },
+      "componentName" : "forceCommunity:seoAssistant",
+      "id" : "bf8c5251-23de-4a6f-9ccd-bdbdd85fbc2a",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "629773a9-4e3d-4c35-9e76-17a6257a3025",
+    "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "custom-dashboards"
+}

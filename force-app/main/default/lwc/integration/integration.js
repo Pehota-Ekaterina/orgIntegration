@@ -428,6 +428,6 @@ export default class Integration extends NavigationMixin(LightningElement) {
                 objectApiName: "Org_Connection__c",
                 actionName: "view",
             },
-        });      
+        });  
     }
 }

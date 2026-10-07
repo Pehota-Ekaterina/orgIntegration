@@ -6,6 +6,10 @@ public with sharing class CallbackAuthController {
     private static final String clientSecret = ConfigManager.getClientSecret();
     private static final String redirectUri = ConfigManager.getRedirectUrlCommunity();
 
+    public static Boolean checkPermissionAdmin() {
+        return FeatureManagement.checkPermission('Manage_org_connection');        
+    }
+
     public PageReference callbackAuth() {
         errors = new List<String>();
 
@@ -13,6 +17,10 @@ public with sharing class CallbackAuthController {
         String recordId = ApexPages.currentPage().getParameters().get('state');
         List<Org_Connection__c> orgConnectionsList = new List<Org_Connection__c>();
         Org_Connection__c orgConnection = null;
+
+        if (!checkPermissionAdmin()) {
+            return buildErrorRedirect(recordId, 'You do not have permission to perform this action.');
+        }
         
         if (String.isBlank(code)) {
             errors.add('Code is empty.');
@@ -29,6 +37,7 @@ public with sharing class CallbackAuthController {
                 SELECT Id, Refresh_Token__c, Instance_Url__c, Login_Url__c, UserName__c
                 FROM Org_Connection__c 
                 WHERE Id = :recordId 
+                WITH SYSTEM_MODE
                 LIMIT 1
             ];
 
@@ -89,7 +98,7 @@ public with sharing class CallbackAuthController {
             orgConnection.Instance_Url__c = instanceUrl;
             orgConnection.Status__c = 'Connected';
 
-            update orgConnection;  
+            update as system orgConnection;  
 
             return buildSuccessRedirect(recordId);
         } catch (Exception e) {
@@ -98,9 +107,9 @@ public with sharing class CallbackAuthController {
     }
 
     private PageReference buildSuccessRedirect(String recordId) {
-        String baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
+        String baseUrl = Site.getBaseUrl();
        
-        PageReference pageRef = new PageReference(baseUrl + recordId);
+        PageReference pageRef = new PageReference(baseUrl + '/' + recordId);
         pageRef.getParameters().put('c__showToast', 'true');
         pageRef.getParameters().put('c__toast', 'success');
         pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
@@ -110,16 +119,16 @@ public with sharing class CallbackAuthController {
     }
 
     private PageReference buildErrorRedirect(String recordId, String errorMessage) {
-        String baseUrl = 'https://orgfarm-f379b895a8-dev-ed.develop.my.site.com/orgConnectionPortal/s/org-connection/';
-        String recordIdPath;
+        String baseUrl = Site.getBaseUrl();
+        String urlPath;
 
         if (recordId != null && recordId != '') {
-            recordIdPath = recordId;
+            urlPath = baseUrl + '/' + recordId;
         } else {
-            recordIdPath = '';
+            urlPath = baseUrl;
         }
         
-        PageReference pageRef = new PageReference(baseUrl + recordIdPath);
+        PageReference pageRef = new PageReference(urlPath);
         pageRef.getParameters().put('c__showToast', 'true');
         pageRef.getParameters().put('c__toast', 'error');
         pageRef.getParameters().put('c__message', EncodingUtil.urlEncode(errorMessage, 'UTF-8'));

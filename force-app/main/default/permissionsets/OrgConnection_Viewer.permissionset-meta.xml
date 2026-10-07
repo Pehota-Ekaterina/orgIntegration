@@ -29,11 +29,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
-        <field>Org_Connection__c.Refresh_Token__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
         <field>Org_Connection__c.Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -67,8 +62,4 @@
         <tab>standard-report</tab>
         <visibility>Visible</visibility>
     </tabSettings>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>ViewEncryptedData</name>
-    </userPermissions>
 </PermissionSet>

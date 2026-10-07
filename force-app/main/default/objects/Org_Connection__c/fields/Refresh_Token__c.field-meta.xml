@@ -3,7 +3,9 @@
     <fullName>Refresh_Token__c</fullName>
     <label>Refresh Token</label>
     <length>175</length>
+    <maskChar>asterisk</maskChar>
+    <maskType>all</maskType>
     <required>false</required>
     <trackTrending>false</trackTrending>
-    <type>Text</type>
+    <type>EncryptedText</type>
 </CustomField>
