@@ -158,7 +158,6 @@ public with sharing class OrgController {
 
             if (res.getStatusCode() != 200 && checkPermissionAdmin()) {
                 orgConnection.Status__c = 'Failed';
-                // update as user orgConnection;
                 update as system orgConnection;
             }
             if (res.getStatusCode() != 200) {
