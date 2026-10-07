@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "7d722eb4-82ba-43f9-9383-ef40a9eff8b3",
+  "appPageId" : "850530b9-b2b2-4b57-9b56-85855ee85856",
+  "configurationTags" : [ ],
+  "devName" : "Org_Connection_Related_List__c",
+  "id" : "a5199e3d-f511-4cfb-8954-0fe10a8503a1",
+  "label" : "Org Connection Related List",
+  "objectApiName" : "Org_Connection__c",
+  "routeType" : "relatedlist-a00",
+  "type" : "route",
+  "urlPrefix" : "org-connection"
+}

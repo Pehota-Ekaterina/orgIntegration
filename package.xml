@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Package xmlns="http://sforce.com">
+
+    <types>
+        <members>Org_Connection__c</members>
+        <name>CustomObject</name>
+    </types>
+
+    <types>
+        <members>Org_Connection__c-Org Connection Layout Community Admin</members>
+        <members>Org_Connection__c-Org Connection Layout Community Viewer</members>
+        <members>Org_Connection__c-Org Connection Layout</members>
+        <name>Layout</name>
+    </types>
+
+    <types>
+        <members>Customer Community Plus User</members>
+        <members>Customer Community User</members>
+        <name>Profile</name>
+    </types>
+
+</Package >

@@ -1,35 +1,52 @@
-public without sharing class CallbackAuthController {
+public with sharing class CallbackAuthController {
     public String statusMessage { get; set; }
     public List<String> errors { get; set; }
     
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    private static final String redirectUri = ConfigManager.getRedirectUrl(); 
-    
+    private static final String redirectUri = ConfigManager.getRedirectUrlCommunity();
+
+    public static Boolean checkPermissionAdmin() {
+        return FeatureManagement.checkPermission('Manage_org_connection');        
+    }
+
     public PageReference callbackAuth() {
         errors = new List<String>();
-        
+
         String code = ApexPages.currentPage().getParameters().get('code');
-        String state = ApexPages.currentPage().getParameters().get('state');
+        String recordId = ApexPages.currentPage().getParameters().get('state');
+        List<Org_Connection__c> orgConnectionsList = new List<Org_Connection__c>();
         Org_Connection__c orgConnection = null;
+
+        if (!checkPermissionAdmin()) {
+            return buildErrorRedirect(recordId, 'You do not have permission to perform this action.');
+        }
         
         if (String.isBlank(code)) {
             errors.add('Code is empty.');
             return null;
         }
         
-        if (String.isBlank(state)) {
+        if (String.isBlank(recordId)) {
             errors.add('State parameter is empty.');
             return null;
         }
-        
+
         try {
-            orgConnection = [
+            orgConnectionsList = [
                 SELECT Id, Refresh_Token__c, Instance_Url__c, Login_Url__c, UserName__c
                 FROM Org_Connection__c 
-                WHERE Id = :state 
+                WHERE Id = :recordId 
+                WITH SYSTEM_MODE
                 LIMIT 1
             ];
+
+            if (orgConnectionsList.isEmpty()) {
+                errors.add('Org_Connection__c record not found for ID: ' + recordId);
+                return null;
+            } else {
+                orgConnection = orgConnectionsList[0];
+            }
         } catch (Exception e) {
             errors.add('Record not found: ' + e.getMessage());
             return null;
@@ -57,15 +74,10 @@ public without sharing class CallbackAuthController {
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
             
             if (res.getStatusCode() != 200) {
-                PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
-                pageRef.getParameters().put('c__toast', 'error');
-                pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
-                pageRef.setRedirect(true);
-                return pageRef;
+                return buildErrorRedirect(recordId, 'Authorization failed: status code');
             }
 
             String accessToken = (String) jsonResp.get('access_token');
-            String idToken = (String) jsonResp.get('id_token');
             String instanceUrl = (String) jsonResp.get('instance_url');
             
             String username = getUsernameViaUserInfo(accessToken, orgUrl);
@@ -78,31 +90,51 @@ public without sharing class CallbackAuthController {
 
             String refreshToken = (String) jsonResp.get('refresh_token');
 
-            if(!isRefreshTokenValid(instanceUrl, refreshToken)) {
-                PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
-                pageRef.getParameters().put('c__toast', 'error');
-                pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
-                pageRef.setRedirect(true);
-                return pageRef;
+            if(!isRefreshTokenValid(orgUrl, refreshToken)) {
+                return buildErrorRedirect(recordId, 'Authorization failed: refresh token');
             }
             
             orgConnection.Refresh_Token__c = refreshToken;
             orgConnection.Instance_Url__c = instanceUrl;
             orgConnection.Status__c = 'Connected';
-            update orgConnection;  
 
-            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
-            pageRef.getParameters().put('c__toast', 'success');
-            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
-            pageRef.setRedirect(true);
-            return pageRef;
+            update as system orgConnection;  
+
+            return buildSuccessRedirect(recordId);
         } catch (Exception e) {
-            PageReference pageRef = new PageReference('/lightning/r/Org_Connection__c/' + state + '/view');
-            pageRef.getParameters().put('c__toast', 'error');
-            pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Authorization failed', 'UTF-8'));
-            pageRef.setRedirect(true);
-            return pageRef;
+            return buildErrorRedirect(recordId, 'Authorization failed');
         }
+    }
+
+    private PageReference buildSuccessRedirect(String recordId) {
+        String baseUrl = Site.getBaseUrl();
+       
+        PageReference pageRef = new PageReference(baseUrl + '/' + recordId);
+        pageRef.getParameters().put('c__showToast', 'true');
+        pageRef.getParameters().put('c__toast', 'success');
+        pageRef.getParameters().put('c__message', EncodingUtil.urlEncode('Org successfully linked!', 'UTF-8'));
+        pageRef.setRedirect(true);
+        
+        return pageRef;
+    }
+
+    private PageReference buildErrorRedirect(String recordId, String errorMessage) {
+        String baseUrl = Site.getBaseUrl();
+        String urlPath;
+
+        if (recordId != null && recordId != '') {
+            urlPath = baseUrl + '/' + recordId;
+        } else {
+            urlPath = baseUrl;
+        }
+        
+        PageReference pageRef = new PageReference(urlPath);
+        pageRef.getParameters().put('c__showToast', 'true');
+        pageRef.getParameters().put('c__toast', 'error');
+        pageRef.getParameters().put('c__message', EncodingUtil.urlEncode(errorMessage, 'UTF-8'));
+        pageRef.setRedirect(true);
+        
+        return pageRef;
     }
 
     private String getUsernameViaUserInfo(String accessToken, String orgUrl) {
@@ -139,7 +171,6 @@ public without sharing class CallbackAuthController {
             req.setEndpoint(url + '/services/oauth2/token');
             req.setMethod('POST');
             req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            // req.setTimeout(10000);
 
             String body = 'grant_type=refresh_token' +
                           '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
@@ -152,7 +183,6 @@ public without sharing class CallbackAuthController {
 
             return res.getStatusCode() == 200;
         } catch (Exception e) {
-            System.debug('Token validation error: ' + e.getMessage());
             return false;
         }
     }

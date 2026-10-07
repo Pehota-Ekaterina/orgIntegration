@@ -1,5 +1,5 @@
 <template>
-    <lightning-card> 
+    <lightning-card>         
         <div class="slds-grid slds-m-vertical_small slds-m-horizontal_large">
             <div class="slds-col">
                 <div class="slds-grid">
@@ -11,10 +11,11 @@
                     </template>
                 </div>
             </div>
-            
-            <div class="slds-col slds-text-align_right">
-                <button class="button-new-org" onclick={handleModal}>+ New org connection</button>
-            </div>
+            <template if:true={permissionCheckResult}>
+                <div class="slds-col slds-text-align_right">
+                    <button class="button-new-org" onclick={handleModal}>+ New org connection</button>
+                </div>
+            </template>
         </div>
 
         <div class="slds-m-horizontal_large">
@@ -76,31 +77,28 @@
                             </div>
                             
                             <div class="card-buttons">
-                                <button 
-                                    class="btn" 
-                                    onclick={handleDeleteOrgConnection} 
-                                    data-org-id={orgConnection.Id} 
-                                    data-org-name={orgConnection.Org_Name__c}>
-                                    <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                    Delete
-                                </button>
-                                <template if:true={orgConnection.isStatusConnected}>
-                                    <!-- <button 
+                                <template if:true={permissionCheckResult}>
+                                    <button 
                                         class="btn" 
                                         onclick={handleDeleteOrgConnection} 
                                         data-org-id={orgConnection.Id} 
                                         data-org-name={orgConnection.Org_Name__c}>
                                         <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
                                         Delete
-                                    </button> -->
-                                    <button 
-                                        class="btn"
-                                        onclick={handleDisconnectOrgConnection} 
-                                        data-org-id={orgConnection.Id} 
-                                        data-org-name={orgConnection.Org_Name__c}>
-                                        <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
-                                        Disconnect
                                     </button>
+                                </template>
+                                <template if:true={orgConnection.isStatusConnected}>
+                                    <template if:true={permissionCheckResult}>
+                                        <button 
+                                            class="btn"
+                                            onclick={handleDisconnectOrgConnection} 
+                                            data-org-id={orgConnection.Id} 
+                                            data-org-name={orgConnection.Org_Name__c}>
+                                            <lightning-icon icon-name="utility:lock" size="xx-small"></lightning-icon>
+                                            Disconnect
+                                        </button>
+                                    </template>
+                                    
                                     <button 
                                         class="btn btn-primary"
                                         onclick={handleOpenOrgConnection} 
@@ -110,43 +108,30 @@
                                     </button>
                                 </template>
 
-                                <template if:true={orgConnection.isStatusFailed}>
-                                    <!-- <button 
-                                        class="btn" 
-                                        onclick={handleDeleteOrgConnection} 
-                                        data-org-id={orgConnection.Id} 
-                                        data-org-name={orgConnection.Org_Name__c}>
-                                        <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                        Delete
-                                    </button> -->
-                                    <button 
-                                        class="btn"
-                                        onclick={handleAuthorizeOrgConnection} 
-                                        data-org-id={orgConnection.Id} 
-                                        data-org-name={orgConnection.Org_Name__c}>
-                                        <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
-                                        Re-authorize
-                                    </button>
-                                </template>
+                                <template if:true={permissionCheckResult}>
+                                    <template if:true={orgConnection.isStatusFailed}>
+                                        <button 
+                                            class="btn"
+                                            onclick={handleAuthorizeOrgConnection} 
+                                            data-org-id={orgConnection.Id} 
+                                            data-org-name={orgConnection.Org_Name__c}>
+                                            <lightning-icon icon-name="utility:refresh" size="xx-small"></lightning-icon>
+                                            Re-authorize
+                                        </button>
+                                    </template>
 
-                                <template if:true={orgConnection.isStatusNotLinked}>
-                                    <!-- <button 
-                                        class="btn" 
-                                        onclick={handleDeleteOrgConnection} 
-                                        data-org-id={orgConnection.Id} 
-                                        data-org-name={orgConnection.Org_Name__c}>
-                                        <lightning-icon icon-name="utility:delete" size="xx-small"></lightning-icon>
-                                        Delete
-                                    </button> -->
-                                    <button 
-                                        class="btn btn-primary"
-                                        onclick={handleAuthorizeOrgConnection} 
-                                        data-org-id={orgConnection.Id} 
-                                        data-org-name={orgConnection.Org_Name__c}>
-                                        <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
-                                        Authorize
-                                    </button>
+                                    <template if:true={orgConnection.isStatusNotLinked}>
+                                        <button 
+                                            class="btn btn-primary"
+                                            onclick={handleAuthorizeOrgConnection} 
+                                            data-org-id={orgConnection.Id} 
+                                            data-org-name={orgConnection.Org_Name__c}>
+                                            <lightning-icon icon-name="utility:key" size="xx-small"></lightning-icon>
+                                            Authorize
+                                        </button>
+                                    </template>
                                 </template>
+                                
                             </div>
                         </div> 
                     </template>

@@ -7,6 +7,8 @@ import disconnectOrgConnectionController from '@salesforce/apex/OrgController.di
 import openOrgConnectionController from '@salesforce/apex/OrgController.openOrgConnection';
 import getAuthUrlController from '@salesforce/apex/OrgController.getAuthorizationUrl';
 import connectionStatusCheckController from '@salesforce/apex/OrgController.connectionStatusCheck';
+import hasPermissionApex from '@salesforce/apex/OrgController.checkPermissionAdmin';
+
 import { refreshApex } from '@salesforce/apex'; 
 import { NavigationMixin } from 'lightning/navigation';
 
@@ -18,6 +20,9 @@ export default class Integration extends NavigationMixin(LightningElement) {
 
     isLoading = true;
     hasVerifiedConnections = false;
+    
+    permissionCheckResult = false;
+    errorPermission;
 
     @track searchQuery = '';
 
@@ -29,6 +34,17 @@ export default class Integration extends NavigationMixin(LightningElement) {
         loginUrl: ''
     };
 
+    @wire(hasPermissionApex)
+    hasPermission(result) {
+        if(result.data) {
+            this.permissionCheckResult = result.data;
+            this.errorPermission = undefined;
+        } else if (result.error) {
+            this.errorPermission = result.error;
+            this.permissionCheckResult = false;
+        }
+    }
+
     @wire(getOrgConnectionsController)
     wiredOrgConnections(result) {
         this.wiredOrgConnectionsResult = result;
@@ -37,10 +53,11 @@ export default class Integration extends NavigationMixin(LightningElement) {
             this.orgConnectionList = result.data;
             this.error = undefined;
 
-            if (!this.hasVerifiedConnections) {
+            if (!this.hasVerifiedConnections && this.permissionCheckResult) {
                 this.hasVerifiedConnections = true;
                 this.connectionStatusCheck();
             }
+            this.isLoading = false;
         } else if (result.error) {
             this.error = result.error;
             this.orgConnectionList = [];
@@ -131,9 +148,10 @@ export default class Integration extends NavigationMixin(LightningElement) {
     }
 
     async connectionStatusCheck() {
-       await connectionStatusCheckController();
 
-       if (this.wiredOrgConnectionsResult) {
+        await connectionStatusCheckController();
+
+        if (this.wiredOrgConnectionsResult) {
             await refreshApex(this.wiredOrgConnectionsResult);
         }
 
@@ -207,7 +225,6 @@ export default class Integration extends NavigationMixin(LightningElement) {
         if (!this.orgConnection.orgName || this.orgConnection.orgName.trim() === '') {
             orgNameInput.setCustomValidity('Org Name is required');
             orgNameInput.reportValidity();
-            // isValid = false;
             this.isValid = false;
         }
 
@@ -281,7 +298,6 @@ export default class Integration extends NavigationMixin(LightningElement) {
             } else if (Array.isArray(error) && error[0]?.message) {
                 errorMsg = error[0].message;
             }
-            
             this.showToast('Error', errorMsg, 'error');
         }
     }
@@ -300,7 +316,7 @@ export default class Integration extends NavigationMixin(LightningElement) {
     }
 
     handleDeleteOrgConnection(event) {
-        const recordId = event.target.dataset.orgId;
+        const recordId = event.target.dataset.orgId; 
         const recordName = event.target.dataset.orgName;
 
         if (!recordId) return;
@@ -412,6 +428,6 @@ export default class Integration extends NavigationMixin(LightningElement) {
                 objectApiName: "Org_Connection__c",
                 actionName: "view",
             },
-        });      
+        });  
     }
 }

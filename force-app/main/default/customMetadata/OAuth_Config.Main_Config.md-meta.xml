@@ -3,19 +3,7 @@
     <label>Main_Config</label>
     <protected>false</protected>
     <values>
-        <field>Client_Id__c</field>
-        <value xsi:type="xsd:string">3MVG9GCMQoQ6rpzRMJUK898LWHKpirAgi_zBA9mUNgRLS8MX7g85l3t9F2_M6kJORu1THSPawTNqLP1K.x1K3</value>
-    </values>
-    <values>
-        <field>Client_Secret__c</field>
-        <value xsi:type="xsd:string">90E1A9E5B37AC339284D445B8C8FAF052A1CBB93345774954B3AA8C53EAAAE09</value>
-    </values>
-    <values>
         <field>Is_Active__c</field>
         <value xsi:type="xsd:boolean">true</value>
-    </values>
-    <values>
-        <field>Redirect_Url__c</field>
-        <value xsi:type="xsd:string">https://orgfarm-f379b895a8-dev-ed.develop.my.salesforce.com/apex/CallbackAuth</value>
     </values>
 </CustomMetadata>

@@ -2,15 +2,21 @@ public with sharing class OrgController {
 
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
-    private static final String redirectUri = ConfigManager.getRedirectUrl();
+    private static final String redirectUriCommunity = ConfigManager.getRedirectUrlCommunity();
 
     @AuraEnabled(cacheable=true)
     public static List<Org_Connection__c> getOrgConnections() {
         return [
             SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c
-            FROM Org_Connection__c
+            FROM Org_Connection__c 
+            WITH USER_MODE
             LIMIT 100
         ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean checkPermissionAdmin() {
+        return FeatureManagement.checkPermission('Manage_org_connection');        
     }
 
     @AuraEnabled(cacheable=true)
@@ -24,6 +30,7 @@ public with sharing class OrgController {
                 SELECT Id, Org_Name__c, Type__c, Login_Url__c, UserName__c, Status__c, Instance_Url__c
                 FROM Org_Connection__c
                 WHERE Id = :orgConnectionId
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -39,31 +46,46 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static String saveOrgConnection(Map<String, Object> orgData) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to save org connection.');
+        }
+
+        if (orgData == null || orgData.isEmpty()) {
+            throw new AuraHandledException('Invalid org connection data provided.');
+        }
+
         Org_Connection__c orgConnection = new Org_Connection__c();
         orgConnection.Org_Name__c = (String) orgData.get('Org_Name__c');
         orgConnection.Type__c = (String) orgData.get('Type__c');
         orgConnection.Login_Url__c = (String) orgData.get('Login_Url__c');
-        insert orgConnection;
+        insert as user orgConnection;
 
         return orgConnection.Id;
     }
 
     @AuraEnabled
     public static void deleteOrgConnection(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
             }
 
             List<Org_Connection__c> recordsToDelete = [
-                SELECT Id FROM Org_Connection__c WHERE Id = :orgConnectionId 
+                SELECT Id 
+                FROM Org_Connection__c
+                WHERE Id = :orgConnectionId 
+                WITH USER_MODE
             ];
 
             if (recordsToDelete.isEmpty()) {
                 throw new AuraHandledException('Org Connection not found.');
             }        
 
-            delete recordsToDelete;
+            delete as user recordsToDelete;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -71,6 +93,10 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void disconnectOrgConnection(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
@@ -78,8 +104,9 @@ public with sharing class OrgController {
 
             List<Org_Connection__c> recordsToDisconnectList = [
                 SELECT Id, Refresh_Token__c, Instance_Url__c, UserName__c, Status__c
-                FROM Org_Connection__c 
+                FROM Org_Connection__c
                 WHERE Id = :orgConnectionId 
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -94,7 +121,7 @@ public with sharing class OrgController {
             recordToDisconnect.UserName__c = null;
 
             recordToDisconnect.Status__c = 'Not linked';
-            update recordToDisconnect;  
+            update as system recordToDisconnect;  
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -111,6 +138,7 @@ public with sharing class OrgController {
                 SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c 
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
+                WITH SYSTEM_MODE
                 LIMIT 1
             ];
 
@@ -124,28 +152,17 @@ public with sharing class OrgController {
             String instanceUrl = orgConnection.Instance_Url__c;
             String loginUrl = orgConnection.Login_Url__c;
 
-            HttpRequest req = new HttpRequest();
-            req.setEndpoint(loginUrl + '/services/oauth2/token');
-            req.setMethod('POST');
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-
-            String body = 'grant_type=refresh_token' +
-                        '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                        '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                        '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
-
-            req.setBody(body);
-
-            Http http = new Http();
-            HttpResponse res = http.send(req);
+            HttpResponse res = sendRefreshTokenRequest(loginUrl, refreshToken);
 
             Map<String, Object> jsonResp = (Map<String, Object>)JSON.deserializeUntyped(res.getBody());
 
-            if(res.getStatusCode() != 200) {
+            if (res.getStatusCode() != 200 && checkPermissionAdmin()) {
                 orgConnection.Status__c = 'Failed';
-                update orgConnection;
-
-                return null; 
+                // update as user orgConnection;
+                update as system orgConnection;
+            }
+            if (res.getStatusCode() != 200) {
+                throw new AuraHandledException('Failed to refresh access token. Status code: ' + res.getStatusCode());
             }
 
             String newAccessToken = (String) jsonResp.get('access_token');
@@ -158,8 +175,29 @@ public with sharing class OrgController {
         }
     }
 
+    private static HttpResponse sendRefreshTokenRequest(String loginUrl, String refreshToken) {
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(loginUrl + '/services/oauth2/token');
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+        String body = 'grant_type=refresh_token' +
+                    '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
+                    '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
+                    '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
+
+        req.setBody(body);
+
+        Http http = new Http();
+        return http.send(req);
+    }
+
     @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
         try {
             if (String.isBlank(orgConnectionId)) {
                 throw new AuraHandledException('Invalid Record ID provided.');
@@ -167,8 +205,9 @@ public with sharing class OrgController {
 
             List<Org_Connection__c> orgConnectionsList = [
                 SELECT Id, Login_Url__c 
-                FROM Org_Connection__c 
+                FROM Org_Connection__c
                 WHERE Id = :orgConnectionId 
+                WITH USER_MODE
                 LIMIT 1
             ];
 
@@ -176,7 +215,7 @@ public with sharing class OrgController {
                 throw new AuraHandledException('Org Connection not found.');
             }        
             Org_Connection__c orgConnection = orgConnectionsList[0];
-
+            String redirectUri = redirectUriCommunity;
             String state = orgConnectionId;
             String baseUrl = orgConnection.Login_Url__c;
             
@@ -194,52 +233,57 @@ public with sharing class OrgController {
 
     @AuraEnabled
     public static void connectionStatusCheck() {
-        List<Org_Connection__c> orgConnectionsList = [SELECT Id, Login_Url__c, Refresh_Token__c, Status__c FROM Org_Connection__c];
+        if (!checkPermissionAdmin()) {
+            throw new AuraHandledException('Insufficient privileges to disconnect.');
+        }
+
+        List<Org_Connection__c> orgConnectionsList = [
+            SELECT Id, Login_Url__c, Refresh_Token__c, Status__c 
+            FROM Org_Connection__c
+            WITH SYSTEM_MODE
+        ];
         List<Org_Connection__c> orgConnectionsToUpdate = new List<Org_Connection__c>();
 
-        for (Org_Connection__c orgConnection : orgConnectionsList) {
-            if (String.isBlank(orgConnection.Refresh_Token__c)) {
+        for (Org_Connection__c orgConnection : orgConnectionsList) {            
+            if (String.isBlank(orgConnection.Refresh_Token__c) && orgConnection.Status__c != 'Not linked') {
                 orgConnection.Status__c = 'Not linked';
-            } else {
+                orgConnectionsToUpdate.add(orgConnection);
+            } else  if (!String.isBlank(orgConnection.Refresh_Token__c)) {
                 String loginUrl = orgConnection.Login_Url__c;
                 String refreshToken = orgConnection.Refresh_Token__c;
-                Boolean isValid = isRefreshTokenValid(loginUrl, refreshToken);
+                Boolean isValid; 
+                
+                try {
+                    isValid = isRefreshTokenValid(loginUrl, refreshToken);
+                } catch (Exception e) {
+                    isValid = false;
+                }
 
-                if (isValid) {
+                if (isValid && orgConnection.Status__c != 'Connected') {
                     orgConnection.Status__c = 'Connected';
-                } else {
+                    orgConnectionsToUpdate.add(orgConnection);
+                } 
+
+                if (!isValid && orgConnection.Status__c != 'Failed') {
                     orgConnection.Status__c = 'Failed';
+                    orgConnectionsToUpdate.add(orgConnection);
                 }
             }
         }
 
-        update orgConnectionsList;
+        update as system orgConnectionsToUpdate;
     }
 
+    @TestVisible
     private static Boolean isRefreshTokenValid(String loginUrl, String refreshToken) {
         if (String.isBlank(loginUrl) || String.isBlank(refreshToken)) {
             return false;
         }
 
         try {
-            HttpRequest req = new HttpRequest();
-            req.setEndpoint(loginUrl + '/services/oauth2/token');
-            req.setMethod('POST');
-            req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-            // req.setTimeout(10000);
-
-            String body = 'grant_type=refresh_token' +
-                          '&refresh_token=' + EncodingUtil.urlEncode(refreshToken, 'UTF-8') +
-                          '&client_id=' + EncodingUtil.urlEncode(clientId, 'UTF-8') +
-                          '&client_secret=' + EncodingUtil.urlEncode(clientSecret, 'UTF-8');
-            req.setBody(body);
-
-            Http http = new Http();
-            HttpResponse res = http.send(req);
-
+            HttpResponse res = sendRefreshTokenRequest(loginUrl, refreshToken);
             return res.getStatusCode() == 200;
         } catch (Exception e) {
-            System.debug('Token validation error: ' + e.getMessage());
             return false;
         }
     }
