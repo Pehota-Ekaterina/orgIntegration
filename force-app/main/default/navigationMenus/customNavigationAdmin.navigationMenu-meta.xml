@@ -10,4 +10,11 @@
         <target>/dashboards</target>
         <type>InternalLink</type>
     </navigationMenuItem>
+    <navigationMenuItem>
+        <label>Org Access Request</label>
+        <position>2</position>
+        <publiclyAvailable>false</publiclyAvailable>
+        <target>Org_Access_Request__c</target>
+        <type>SalesforceObject</type>
+    </navigationMenuItem>
 </NavigationMenu>
