@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "185b834e-da63-4f3d-b8a6-ef594f76c1a0",
+  "appPageId" : "850530b9-b2b2-4b57-9b56-85855ee85856",
+  "configurationTags" : [ ],
+  "devName" : "Org_Access_Request_Detail__c",
+  "id" : "7326f5d4-7666-4022-ba16-55346b47041b",
+  "label" : "Org Access Request Detail",
+  "objectApiName" : "Org_Access_Request__c",
+  "routeType" : "detail-a01",
+  "type" : "route",
+  "urlPrefix" : "org-access-request"
+}

@@ -1,0 +1,12 @@
+{
+  "activeViewId" : "630c2272-e835-4e8f-8e83-6a6484fc5784",
+  "appPageId" : "850530b9-b2b2-4b57-9b56-85855ee85856",
+  "configurationTags" : [ ],
+  "devName" : "Org_Access_Request_Related_List__c",
+  "id" : "f8a1c20f-56a3-417e-b987-21c3ce846d5f",
+  "label" : "Org Access Request Related List",
+  "objectApiName" : "Org_Access_Request__c",
+  "routeType" : "relatedlist-a01",
+  "type" : "route",
+  "urlPrefix" : "org-access-request"
+}
