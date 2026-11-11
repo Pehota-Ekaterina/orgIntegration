@@ -155,10 +155,11 @@
     <externalSharingModel>Private</externalSharingModel>
     <label>Org Access Request</label>
     <nameField>
-        <label>Org_Access_Request Name</label>
-        <type>Text</type>
+        <displayFormat>A-{0000}</displayFormat>
+        <label>Org Access Request Name</label>
+        <type>AutoNumber</type>
     </nameField>
-    <pluralLabel>Org_Access_Requests</pluralLabel>
+    <pluralLabel>Org Access Requests</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

@@ -12,6 +12,9 @@ import hasPermissionApex from '@salesforce/apex/OrgController.checkPermissionAdm
 import { refreshApex } from '@salesforce/apex'; 
 import { NavigationMixin } from 'lightning/navigation';
 
+import AccessRequestModal from 'c/accessRequestModal';
+const ACCESS_REQUIRED = 'ACCESS_REQUIRED';
+
 export default class Integration extends NavigationMixin(LightningElement) {
     @track orgConnectionList = [];
     filteredOrgList = [];
@@ -394,6 +397,17 @@ export default class Integration extends NavigationMixin(LightningElement) {
     async openOrgConnection(recordId) {
         try {
             const orgUrl = await openOrgConnectionController({ orgConnectionId: recordId });
+ 
+            if (orgUrl === ACCESS_REQUIRED) {
+                const result = await AccessRequestModal.open({
+                    size: 'small',
+                    orgId: recordId
+                });
+                if (result === 'submitted') {
+                    this.showToast('Success', 'Your access request has been submitted for approval.', 'success');
+                }
+                return;
+            }
 
             if (orgUrl) {
                 window.open(orgUrl, '_blank');                

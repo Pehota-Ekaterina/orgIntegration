@@ -1,0 +1,24 @@
+<template>
+    <lightning-modal-header label={headerLabel}></lightning-modal-header>
+    <lightning-modal-body>
+        <template lwc:if={showForm}>
+            <lightning-flow
+                flow-api-name="Org_Access_Request_Form"
+                flow-input-variables={flowInputs}
+                onstatuschange={handleStatusChange}>
+            </lightning-flow>
+        </template>
+        <template lwc:else>
+            <p>This is a Production org. To open it, you need an approved access request.</p>
+            <p class="slds-m-top_small">Would you like to submit an access request?</p>
+        </template>
+    </lightning-modal-body>
+    <template lwc:if={showIntro}>
+        <lightning-modal-footer>
+            <lightning-button label="Cancel" onclick={handleCancel}
+                              class="slds-m-right_x-small"></lightning-button>
+            <lightning-button variant="brand" label="Request Access"
+                              onclick={handleCreate}></lightning-button>
+        </lightning-modal-footer>
+    </template>
+</template>
