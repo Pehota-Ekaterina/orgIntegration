@@ -1,6 +1,6 @@
 {
   "appPageId" : "850530b9-b2b2-4b57-9b56-85855ee85856",
-  "componentName" : "siteforce:sldsOneColLayout",
+  "componentName" : "siteforce:sldsTwoCol84Layout",
   "dataProviders" : [ ],
   "id" : "185b834e-da63-4f3d-b8a6-ef594f76c1a0",
   "label" : "Org Access Request Detail",
@@ -26,8 +26,8 @@
         "relatedTabLabel" : "Related",
         "showLegacyActivityComposer" : false,
         "tab1Type" : "details",
-        "tab2Type" : "related",
-        "tab3Type" : "chatter",
+        "tab2Type" : "none",
+        "tab3Type" : "none",
         "tab4Type" : "none",
         "timelineTabLabel" : "Activity"
       },
@@ -58,6 +58,36 @@
     } ],
     "id" : "324d51b5-105e-4f13-a565-d64f6a2771e4",
     "regionName" : "sfdcHiddenRegion",
+    "type" : "region"
+  }, {
+    "components" : [ {
+      "componentAttributes" : {
+        "recordId" : "{!recordId}"
+      },
+      "componentName" : "runtime_approvals:approvalTrace",
+      "id" : "ae42a8a9-e50a-44bf-99ad-d8c2882a0324",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    }, {
+      "componentAttributes" : {
+        "componentLabel" : "Work Guide",
+        "isAutoAdvanceToNextWorkItem" : false,
+        "isHiddenWhenEmpty" : true,
+        "isRunNameDisplayed" : true,
+        "isStageNameDisplayed" : true,
+        "isStepNameDisplayed" : true,
+        "prioritizationCriteria" : "Last Modified Date (Ascending)",
+        "recordId" : "{!recordId}"
+      },
+      "componentName" : "interaction_orchestrator:workGuide",
+      "id" : "14e4ba11-ac46-4828-ba8b-dc972456e754",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "bd759f91-2234-47c3-b2a7-13531c4df043",
+    "regionName" : "sidebar",
     "type" : "region"
   } ],
   "themeLayoutType" : "Inner",

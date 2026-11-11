@@ -3,6 +3,7 @@ public with sharing class OrgController {
     private static final String clientId = ConfigManager.getClientId();
     private static final String clientSecret = ConfigManager.getClientSecret();
     private static final String redirectUriCommunity = ConfigManager.getRedirectUrlCommunity();
+    public static final String ACCESS_REQUIRED = 'ACCESS_REQUIRED';
 
     @AuraEnabled(cacheable=true)
     public static List<Org_Connection__c> getOrgConnections() {
@@ -23,7 +24,10 @@ public with sharing class OrgController {
     public static Org_Connection__c getOrgConnectionById(String orgConnectionId) {
         try {
             if (String.isBlank(orgConnectionId)) {
-                throw new AuraHandledException('Invalid Record ID provided.');
+                String msg = 'Invalid Record ID provided.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             List<Org_Connection__c> records = [
@@ -35,23 +39,34 @@ public with sharing class OrgController {
             ];
 
             if (records.isEmpty()) {
-                throw new AuraHandledException('Org Connection record not found: ' + orgConnectionId);
+                String msg = 'Org Connection record not found: ' + orgConnectionId;
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
             
             return records[0];
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            AuraHandledException ex = new AuraHandledException(e.getMessage());
+            ex.setMessage(e.getMessage());
+            throw ex;
         }
     }
 
     @AuraEnabled
     public static String saveOrgConnection(Map<String, Object> orgData) {
         if (!checkPermissionAdmin()) {
-            throw new AuraHandledException('Insufficient privileges to save org connection.');
+            String msg = 'Insufficient privileges to save org connection.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         if (orgData == null || orgData.isEmpty()) {
-            throw new AuraHandledException('Invalid org connection data provided.');
+            String msg = 'Invalid org connection data provided.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         Org_Connection__c orgConnection = new Org_Connection__c();
@@ -66,12 +81,18 @@ public with sharing class OrgController {
     @AuraEnabled
     public static void deleteOrgConnection(String orgConnectionId) {
         if (!checkPermissionAdmin()) {
-            throw new AuraHandledException('Insufficient privileges to disconnect.');
+            String msg = 'Insufficient privileges to delete org connection.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         try {
             if (String.isBlank(orgConnectionId)) {
-                throw new AuraHandledException('Invalid Record ID provided.');
+                String msg = 'Invalid Record ID provided.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             List<Org_Connection__c> recordsToDelete = [
@@ -82,24 +103,35 @@ public with sharing class OrgController {
             ];
 
             if (recordsToDelete.isEmpty()) {
-                throw new AuraHandledException('Org Connection not found.');
+                String msg = 'Org Connection not found.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }        
 
             delete as user recordsToDelete;
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            AuraHandledException ex = new AuraHandledException(e.getMessage());
+            ex.setMessage(e.getMessage());
+            throw ex;
         }
     }
 
     @AuraEnabled
     public static void disconnectOrgConnection(String orgConnectionId) {
         if (!checkPermissionAdmin()) {
-            throw new AuraHandledException('Insufficient privileges to disconnect.');
+            String msg = 'Insufficient privileges to disconnect.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         try {
             if (String.isBlank(orgConnectionId)) {
-                throw new AuraHandledException('Invalid Record ID provided.');
+                String msg = 'Invalid Record ID provided.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             List<Org_Connection__c> recordsToDisconnectList = [
@@ -111,7 +143,10 @@ public with sharing class OrgController {
             ];
 
             if (recordsToDisconnectList.isEmpty()) {
-                throw new AuraHandledException('Org Connection not found.');
+                String msg = 'Org Connection not found.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             } 
 
             Org_Connection__c recordToDisconnect = recordsToDisconnectList[0];
@@ -123,7 +158,9 @@ public with sharing class OrgController {
             recordToDisconnect.Status__c = 'Not linked';
             update as system recordToDisconnect;  
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            AuraHandledException ex = new AuraHandledException(e.getMessage());
+            ex.setMessage(e.getMessage());
+            throw ex;
         }
     }
 
@@ -131,11 +168,14 @@ public with sharing class OrgController {
     public static String openOrgConnection(String orgConnectionId) {
         try {
             if (String.isBlank(orgConnectionId)) {
-                throw new AuraHandledException('Invalid Record ID provided.');
+                String msg = 'Invalid Record ID provided.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             List<Org_Connection__c> orgConnectionList = [
-                SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c 
+                SELECT Id, Instance_Url__c, Refresh_Token__c, Login_Url__c, Status__c, Type__c
                 FROM Org_Connection__c 
                 WHERE Id = :orgConnectionId 
                 WITH SYSTEM_MODE
@@ -143,10 +183,28 @@ public with sharing class OrgController {
             ];
 
             if (orgConnectionList.isEmpty()) {
-                throw new AuraHandledException('Org Connection not found.');
+                String msg = 'Org Connection not found.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             } 
 
             Org_Connection__c orgConnection = orgConnectionList[0];
+
+            String currentUser = UserInfo.getUserId();
+            DateTime dateTimeNow = System.now();
+            List<Org_Access_Request__c> accessRequests = [
+                SELECT Id, Status__c, Access_Valid_Until__c, CreatedById
+                FROM Org_Access_Request__c
+                WHERE Org_Connection__c = :orgConnectionId 
+                    AND Status__c = 'Approved' 
+                    AND Access_Valid_Until__c >= :dateTimeNow
+                    AND CreatedById = :currentUser
+                LIMIT 1
+            ];
+            if (!checkPermissionAdmin() && orgConnection.Type__c == 'Production' && accessRequests.isEmpty()) {
+                return ACCESS_REQUIRED;
+            }
 
             String refreshToken = orgConnection.Refresh_Token__c;
             String instanceUrl = orgConnection.Instance_Url__c;
@@ -161,7 +219,10 @@ public with sharing class OrgController {
                 update as system orgConnection;
             }
             if (res.getStatusCode() != 200) {
-                throw new AuraHandledException('Failed to refresh access token. Status code: ' + res.getStatusCode());
+                String msg = 'Failed to refresh access token. Status code: ' + res.getStatusCode();
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             String newAccessToken = (String) jsonResp.get('access_token');
@@ -170,7 +231,9 @@ public with sharing class OrgController {
                 'sid=' + EncodingUtil.urlEncode(newAccessToken, 'UTF-8') +
                 '&retURL=/home/home.jsp'; 
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            AuraHandledException ex = new AuraHandledException(e.getMessage());
+            ex.setMessage(e.getMessage());
+            throw ex;
         }
     }
 
@@ -194,12 +257,18 @@ public with sharing class OrgController {
     @AuraEnabled
     public static String getAuthorizationUrl(String orgConnectionId) {
         if (!checkPermissionAdmin()) {
-            throw new AuraHandledException('Insufficient privileges to disconnect.');
+            String msg = 'Insufficient privileges to disconnect.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         try {
             if (String.isBlank(orgConnectionId)) {
-                throw new AuraHandledException('Invalid Record ID provided.');
+                String msg = 'Invalid Record ID provided.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }
 
             List<Org_Connection__c> orgConnectionsList = [
@@ -211,7 +280,10 @@ public with sharing class OrgController {
             ];
 
             if (orgConnectionsList.isEmpty()) {
-                throw new AuraHandledException('Org Connection not found.');
+                String msg = 'Org Connection not found.';
+                AuraHandledException ex = new AuraHandledException(msg);
+                ex.setMessage(msg);
+                throw ex;
             }        
             Org_Connection__c orgConnection = orgConnectionsList[0];
             String redirectUri = redirectUriCommunity;
@@ -226,14 +298,19 @@ public with sharing class OrgController {
                 '&state=' + EncodingUtil.urlEncode(state, 'UTF-8');
 
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            AuraHandledException ex = new AuraHandledException(e.getMessage());
+            ex.setMessage(e.getMessage());
+            throw ex;
         }        
     }
 
     @AuraEnabled
     public static void connectionStatusCheck() {
         if (!checkPermissionAdmin()) {
-            throw new AuraHandledException('Insufficient privileges to disconnect.');
+            String msg = 'Insufficient privileges to disconnect.';
+            AuraHandledException ex = new AuraHandledException(msg);
+            ex.setMessage(msg);
+            throw ex;
         }
 
         List<Org_Connection__c> orgConnectionsList = [

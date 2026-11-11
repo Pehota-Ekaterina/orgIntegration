@@ -18,7 +18,7 @@
         "scope" : "{!objectName}",
         "showActionBar" : true,
         "showChartsPanel" : true,
-        "showDisplay" : "showall",
+        "showDisplay" : "grid",
         "showFilterPanel" : true,
         "showImageIcon" : true,
         "showManualRefreshButton" : true,

@@ -1,0 +1,13 @@
+{
+  "componentVariants" : [ {
+    "id" : "b376154b-13a6-4364-8612-17b146d918fc",
+    "propertyOverrides" : {
+      "isVisible" : true
+    },
+    "targetId" : "14e4ba11-ac46-4828-ba8b-dc972456e754",
+    "type" : "componentVariant"
+  } ],
+  "developerName" : "Org_Access_Request_Detail_Orchestration_Work_Guide_Component",
+  "id" : "a122768e-93e5-49af-95c2-bdad57075582",
+  "type" : "experienceVariation"
+}
